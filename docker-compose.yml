@@ -1,0 +1,60 @@
+services:
+  application_db:
+    image: postgres:15
+    container_name: meu_banco_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  monolito:
+    build: ./monolito                  # Diz ao Docker para ler o Dockerfile desta pasta
+    container_name: backend_monolito
+    restart: always
+    ports:
+      - "8000:8000"                    # Mapeia a porta 8000 do Windows para a 8000 do contêiner
+    environment:
+      - DB_HOST=application_db         # O FastAPI usará este nome para achar o banco de dados na rede!
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+    depends_on:
+      - application_db                 # Garante que o banco suba antes do monolito
+  frontend_web:
+    build: ./frontend
+    container_name: react_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      # Aqui está a mágica do Hot-Reload! 
+      # Espelhamos a sua pasta do Windows para dentro do contêiner.
+      - ./frontend:/app
+      # Esta linha protege a pasta node_modules de conflitos entre o Windows e o Linux do contêiner
+      - /app/node_modules
+    environment:
+      # O React roda no navegador do usuário, então ele precisa chamar a API pelo localhost,
+      # e não pelo nome interno da rede Docker.
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - monolito
+  scan_service:
+    build: ./scan_service
+    container_name: backend_scan
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      - DB_HOST=application_db
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+    depends_on:
+      - application_db
+
+volumes:
+  pgdata:
