@@ -1,14 +1,13 @@
 from fastapi import FastAPI
-import os
+
+from .routers import alunos, turmas
 
 app = FastAPI(title="API do Sistema Acadêmico")
 
+app.include_router(turmas.router)
+app.include_router(alunos.router)
+
+
 @app.get("/")
 def ler_raiz():
-    # Apenas para ilustrar como pegaremos os dados do banco no futuro
-    db_host = os.getenv("DB_HOST", "localhost")
-    return {
-        "status": "Monolito online!", 
-        "mensagem": "Pronto para receber dados do portal do professor.",
-        "conectando_em": db_host
-    }
+    return {"status": "Monolito online!"}
