@@ -55,6 +55,26 @@ services:
       - DB_NAME=${POSTGRES_DB}
     depends_on:
       - application_db
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: monitoring_prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: monitoring_grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    depends_on:
+      - prometheus
 
 volumes:
   pgdata:

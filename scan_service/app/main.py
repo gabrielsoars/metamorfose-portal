@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from .gabarito import processar_gabarito
 
@@ -24,6 +25,8 @@ app = FastAPI(
     description="Lê imagens de gabaritos e extrai as respostas marcadas usando OpenCV.",
     version="1.0.0"
 )
+
+Instrumentator().instrument(app).expose(app)
 
 # Libera CORS para o front poder chamar direto
 app.add_middleware(
@@ -110,6 +113,7 @@ async def processar(
     - **num_alternativas**: quantas colunas de bolhas existem (padrão 5 = A–E)
     - **limiar_marcado**: fração mínima de preenchimento para considerar marcada (padrão 0.35)
     """
+    print(">>> REQUISIÇÃO RECEBIDA EM /PROCESSAR!")
     imagem = carregar_imagem(arquivo)
     resultado = processar_gabarito(
         imagem,
