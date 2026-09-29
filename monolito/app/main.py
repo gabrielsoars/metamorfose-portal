@@ -1,14 +1,23 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
-import os
 
-app = FastAPI(title="API do Sistema Acadêmico")
+from .routers import alunos, turmas
+from .db.base import Base
+from .db.session import engine
+
+from .models import aluno, turma
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
+
+app = FastAPI(title="API do Sistema Acadêmico", lifespan=lifespan)
+
+app.include_router(turmas.router)
+app.include_router(alunos.router)
+
 
 @app.get("/")
 def ler_raiz():
-    # Apenas para ilustrar como pegaremos os dados do banco no futuro
-    db_host = os.getenv("DB_HOST", "localhost")
-    return {
-        "status": "Monolito online!", 
-        "mensagem": "Pronto para receber dados do portal do professor.",
-        "conectando_em": db_host
-    }
+    return {"status": "Monolito online!"}
