@@ -25,6 +25,8 @@ services:
       - DB_NAME=${POSTGRES_DB}
     depends_on:
       - application_db                 # Garante que o banco suba antes do monolito
+    volumes:
+      - ./monolito:/app  
   frontend_web:
     build: ./frontend
     container_name: react_frontend
