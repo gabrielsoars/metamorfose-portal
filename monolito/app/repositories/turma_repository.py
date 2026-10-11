@@ -25,7 +25,6 @@ def atualizar_turma(db: Session, turma: Turma, dados_atualizacao: dict):
     for campo, valor in dados_atualizacao.items():
         setattr(turma, campo, valor)
     
-    print("passou 2")
     db.commit()
     db.refresh(turma)
     return turma
