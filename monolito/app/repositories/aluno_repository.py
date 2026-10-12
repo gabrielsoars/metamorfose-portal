@@ -17,7 +17,7 @@ def buscar_por_id(db: Session, aluno_id: int) -> Aluno | None:
     return db.query(Aluno).filter(Aluno.id == aluno_id).first()
 
 
-def criar_aluno(db: Session, turma_id: int, aluno_in: AlunoCreate) -> Aluno | None:
+def criar_aluno(db: Session, turma_id: int, aluno_in: AlunoCreate) -> Aluno:
     novo_aluno = Aluno(
         nome = aluno_in.nome,
         turma_id = turma_id
@@ -28,7 +28,7 @@ def criar_aluno(db: Session, turma_id: int, aluno_in: AlunoCreate) -> Aluno | No
     db.refresh(novo_aluno)
     return novo_aluno
 
-def atualizar_aluno(db: Session, aluno: Aluno, dados_atualizacao: dict) -> Aluno | None:
+def atualizar_aluno(db: Session, aluno: Aluno, dados_atualizacao: dict) -> Aluno:
     for campo, valor in dados_atualizacao.items():
         setattr(aluno, campo, valor)
 
