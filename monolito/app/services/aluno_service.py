@@ -22,11 +22,11 @@ def listar_alunos_da_turma(db: Session, turma_id: int) -> list[Aluno]:
 def obter_aluno(db: Session, aluno_id: int) -> Aluno | None:
     return aluno_repository.buscar_por_id(db, aluno_id)
 
-def criar_aluno(db: Session, turma_id: int, aluno_in: AlunoCreate) -> Aluno | None:
+def criar_aluno(db: Session, turma_id: int, aluno_in: AlunoCreate) -> Aluno:
     buscar_turma(db, turma_id)
     return aluno_repository.criar_aluno(db, turma_id, aluno_in)
 
-def atualizar_aluno(db: Session, aluno_id: int, aluno_in: AlunoUpdate) -> Aluno | None:
+def atualizar_aluno(db: Session, aluno_id: int, aluno_in: AlunoUpdate) -> Aluno:
     aluno = aluno_repository.buscar_por_id(db, aluno_id)
     if aluno is None:
         raise AlunoNaoEncontrado(aluno_id)
