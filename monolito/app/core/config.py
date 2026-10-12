@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -9,9 +10,16 @@ class Settings(BaseSettings):
     db_user: str = "postgres"
     db_password: str = ""
     db_name: str = "postgres"
+    database_url: str | None = Field(default=None, alias="DATABASE_URL")
 
     @property
-    def database_url(self) -> str:
+    def effective_database_url(self) -> str:
+        if self.database_url:
+            return self.database_url
+
+        if self.db_host in {"", "localhost", "127.0.0.1"} and not self.db_password:
+            return "sqlite:///./metamorfose.db"
+
         return (
             f"postgresql+psycopg2://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
