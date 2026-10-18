@@ -1,122 +1,79 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react';
+import { FALLBACK_PROFESSORS, FALLBACK_TURMAS } from './data/constants.js';
+import { listarUsuarios, normalizeUsuario } from './services/usuariosService.js';
+import { listarTurmas, normalizeTurma } from './services/turmasService.js';
+import { LoginScreen, AtivacaoScreen } from './screens/auth/index.js';
+import { AdminHomeScreen, AdminGestaoScreen, AdminCadastroScreen } from './screens/admin/index.js';
+import { ProfDashboardScreen, TurmasScreen, TurmaDetalhesScreen, TurmaCadastroScreen, ProfPerfilScreen } from './screens/professor/index.js';
+import { SimuladosListaScreen, SimuladoCriarScreen, SimuladoPainelScreen, EscaneamentoScreen, GabaritoScreen } from './screens/simulados/index.js';
+export { normalizeUsuario } from './services/usuariosService.js';
+export { normalizeTurma } from './services/turmasService.js';
+export { normalizeAluno } from './services/alunosService.js';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [screen, setScreen] = useState('login');
+  const [usuarios, setUsuarios] = useState(FALLBACK_PROFESSORS);
+  const [turmas, setTurmas] = useState(FALLBACK_TURMAS);
+  const [selectedProfessor, setSelectedProfessor] = useState(null);
+  const [selectedTurma, setSelectedTurma] = useState(null);
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+  const loadData = async () => {
+    try {
+      const [usuariosResponse, turmasResponse] = await Promise.all([
+        listarUsuarios().catch(() => FALLBACK_PROFESSORS),
+        listarTurmas().catch(() => FALLBACK_TURMAS),
+      ]);
 
-      <div className="ticks"></div>
+      setUsuarios((Array.isArray(usuariosResponse) ? usuariosResponse : FALLBACK_PROFESSORS).map(normalizeUsuario));
+      setTurmas((Array.isArray(turmasResponse) ? turmasResponse : FALLBACK_TURMAS).map(normalizeTurma));
+    } catch {
+      setUsuarios(FALLBACK_PROFESSORS);
+      setTurmas(FALLBACK_TURMAS);
+    }
+  };
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+  useEffect(() => {
+    loadData();
+  }, []);
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  const go = (s, payload = null) => {
+    setSelectedProfessor(s === 'admin-gestao' ? payload : null);
+    setSelectedTurma(s === 'turma-detalhes' ? payload : null);
+    setScreen(s);
+  };
+
+  switch (screen) {
+    case 'login':
+      return <LoginScreen go={go} />;
+    case 'ativacao':
+      return <AtivacaoScreen go={go} />;
+    case 'admin-home':
+      return <AdminHomeScreen go={go} professors={usuarios} onRefresh={loadData} />;
+    case 'admin-gestao':
+      return <AdminGestaoScreen go={go} professor={selectedProfessor} onRefresh={loadData} />;
+    case 'admin-cadastro':
+      return <AdminCadastroScreen go={go} onRefresh={loadData} />;
+    case 'prof-dashboard':
+      return <ProfDashboardScreen go={go} turmas={turmas} />;
+    case 'prof-turmas':
+      return <TurmasScreen go={go} turmas={turmas} onRefresh={loadData} />;
+    case 'turma-detalhes':
+      return <TurmaDetalhesScreen go={go} turma={selectedTurma} turmas={turmas} onRefresh={loadData} />;
+    case 'turma-cadastro':
+      return <TurmaCadastroScreen go={go} onRefresh={loadData} />;
+    case 'simulados-lista':
+      return <SimuladosListaScreen go={go} />;
+    case 'simulado-criar':
+      return <SimuladoCriarScreen go={go} />;
+    case 'simulado-painel':
+      return <SimuladoPainelScreen go={go} />;
+    case 'escaneamento':
+      return <EscaneamentoScreen go={go} />;
+    case 'simulado-gabarito':
+      return <GabaritoScreen go={go} />;
+    case 'prof-perfil':
+      return <ProfPerfilScreen go={go} />;
+    default:
+      return <LoginScreen go={go} />;
+  }
 }
-
-export default App
