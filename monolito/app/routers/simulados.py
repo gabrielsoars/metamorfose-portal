@@ -9,6 +9,9 @@ from ..schemas.simulado import (
     SimuladoUpdate,
     GabaritoOut,
     GabaritoCreate,
+    AlunosSimuladoOut,
+    CorrecaoAlunoOut,
+    RespostasAlunoUpdate,
 )
 from ..services import simulado_service
 
@@ -65,4 +68,43 @@ def put_gabarito(
     except simulado_service.SimuladoNaoEncontrado:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Simulado não encontrado")
     except simulado_service.GabaritoInvalido as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.get("/{simulado_id}/alunos", response_model=AlunosSimuladoOut)
+def get_alunos_simulado(simulado_id: int, db: Session = Depends(get_db)):
+    try:
+        return simulado_service.listar_alunos_do_simulado(db, simulado_id)
+    except simulado_service.SimuladoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Simulado não encontrado")
+
+@router.get("/{simulado_id}/alunos/{aluno_id}", response_model=CorrecaoAlunoOut)
+def get_correcao_aluno(simulado_id: int, aluno_id: int, db: Session = Depends(get_db)):
+    try:
+        return simulado_service.obter_correcao_aluno(db, simulado_id, aluno_id)
+    except simulado_service.SimuladoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Simulado não encontrado")
+    except simulado_service.AlunoNaoEncontradoNoSimulado:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aluno não encontrado nas turmas deste simulado"
+        )
+
+@router.put("/{simulado_id}/alunos/{aluno_id}", response_model=CorrecaoAlunoOut)
+def put_respostas_aluno(
+    simulado_id: int,
+    aluno_id: int,
+    respostas_in: RespostasAlunoUpdate,
+    db: Session = Depends(get_db)
+):
+    try:
+        return simulado_service.salvar_respostas_aluno(db, simulado_id, aluno_id, respostas_in)
+    except simulado_service.SimuladoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Simulado não encontrado")
+    except simulado_service.AlunoNaoEncontradoNoSimulado:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aluno não encontrado nas turmas deste simulado"
+        )
+    except simulado_service.RespostasInvalidas as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
