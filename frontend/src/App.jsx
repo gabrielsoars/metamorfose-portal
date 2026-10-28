@@ -10,8 +10,29 @@ export { normalizeUsuario } from './services/usuariosService.js';
 export { normalizeTurma } from './services/turmasService.js';
 export { normalizeAluno } from './services/alunosService.js';
 
+// Guarda a tela atual e os ids selecionados para que um refresh (F5) não volte ao login.
+const NAV_STORAGE_KEY = 'metamorfose:nav';
+
+function readSavedNav() {
+  try {
+    return JSON.parse(sessionStorage.getItem(NAV_STORAGE_KEY)) || { screen: 'login' };
+  } catch {
+    return { screen: 'login' };
+  }
+}
+
+function saveNav(nav) {
+  try {
+    if (nav.screen === 'login') sessionStorage.removeItem(NAV_STORAGE_KEY);
+    else sessionStorage.setItem(NAV_STORAGE_KEY, JSON.stringify(nav));
+  } catch {
+    // Sem sessionStorage o app funciona normalmente, só não restaura a tela.
+  }
+}
+
 export default function App() {
-  const [screen, setScreen] = useState('login');
+  const [savedNav] = useState(readSavedNav);
+  const [screen, setScreen] = useState(savedNav.screen);
   const [usuarios, setUsuarios] = useState(FALLBACK_PROFESSORS);
   const [turmas, setTurmas] = useState(FALLBACK_TURMAS);
   const [selectedProfessor, setSelectedProfessor] = useState(null);
@@ -24,23 +45,56 @@ export default function App() {
         listarTurmas().catch(() => FALLBACK_TURMAS),
       ]);
 
-      setUsuarios((Array.isArray(usuariosResponse) ? usuariosResponse : FALLBACK_PROFESSORS).map(normalizeUsuario));
-      setTurmas((Array.isArray(turmasResponse) ? turmasResponse : FALLBACK_TURMAS).map(normalizeTurma));
+      const listaUsuarios = (Array.isArray(usuariosResponse) ? usuariosResponse : FALLBACK_PROFESSORS).map(normalizeUsuario);
+      const listaTurmas = (Array.isArray(turmasResponse) ? turmasResponse : FALLBACK_TURMAS).map(normalizeTurma);
+      setUsuarios(listaUsuarios);
+      setTurmas(listaTurmas);
+      return { usuarios: listaUsuarios, turmas: listaTurmas };
     } catch {
       setUsuarios(FALLBACK_PROFESSORS);
       setTurmas(FALLBACK_TURMAS);
+      return { usuarios: FALLBACK_PROFESSORS, turmas: FALLBACK_TURMAS };
     }
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData().then(({ usuarios: listaUsuarios, turmas: listaTurmas }) => {
+      // Após um refresh, recupera o item selecionado pelo id salvo. Se ele não existir mais, volta para a tela anterior.
+      if (savedNav.screen === 'admin-gestao') {
+        const professor = listaUsuarios.find((u) => u.id === savedNav.professorId);
+        if (professor) setSelectedProfessor(professor);
+        else setScreen('admin-home');
+      }
+      if (savedNav.screen === 'turma-detalhes') {
+        const turma = listaTurmas.find((t) => t.id === savedNav.turmaId);
+        if (turma) setSelectedTurma(turma);
+        else setScreen('prof-turmas');
+      }
+    });
+  }, [savedNav]);
+
+  // Telas que dependem de um item selecionado ficam em branco até a restauração terminar,
+  // para não exibir dados de fallback por um instante.
+  const isRestoringSelection =
+    (screen === 'admin-gestao' && !selectedProfessor) ||
+    (screen === 'turma-detalhes' && !selectedTurma);
+
+  useEffect(() => {
+    if (isRestoringSelection) return;
+    saveNav({
+      screen,
+      professorId: selectedProfessor?.id ?? null,
+      turmaId: selectedTurma?.id ?? null,
+    });
+  }, [screen, selectedProfessor, selectedTurma, isRestoringSelection]);
 
   const go = (s, payload = null) => {
     setSelectedProfessor(s === 'admin-gestao' ? payload : null);
     setSelectedTurma(s === 'turma-detalhes' ? payload : null);
     setScreen(s);
   };
+
+  if (isRestoringSelection) return null;
 
   switch (screen) {
     case 'login':

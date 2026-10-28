@@ -4,6 +4,7 @@ import App, { normalizeUsuario, normalizeTurma } from './App'
 
 describe('App', () => {
   beforeEach(() => {
+    sessionStorage.clear()
     vi.stubGlobal('fetch', vi.fn(async (input) => {
       const url = String(input)
 

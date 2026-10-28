@@ -14,16 +14,16 @@ Tamanho: S (≤ meio dia) · M (1–2 dias)
 
 ## Tasks
 
-| ID   | Task                                                                | Tam. | Branch                          |
-| ---- | ------------------------------------------------------------------- | ---- | ------------------------------- |
-| D-01 | Subir a stack (`docker compose up`) e rodar `npm test`              | S    | `chore/d01-baseline`            |
-| D-08 | Manter a tela atual ao dar refresh (hoje volta para o login)        | S    | `feat/d08-refresh-mantem-tela`  |
-| D-02 | Registrar router e modelo de simulados no `monolito/app/main.py`    | S    | `fix/d02-registrar-simulados`   |
-| D-03 | Cadastro de turma salvando na API                                   | S    | `feat/d03-cadastro-turma`       |
-| D-04 | `simuladosService.js` + lista e criação de simulado integradas      | M    | `feat/d04-simulados`            |
-| D-05 | Cadastro do gabarito oficial (`PUT /simulados/{id}/gabarito`)       | M    | `feat/d05-gabarito-oficial`     |
-| D-06 | Escaneamento: enviar imagem ao `scan_service` e exibir as respostas | M    | `feat/d06-escaneamento`         |
-| D-07 | Calcular e mostrar a nota (respostas lidas × gabarito oficial)      | S    | `feat/d07-nota`                 |
+| ID   | Task                                                                | Tam. | Branch                          | Status                   |
+| ---- | ------------------------------------------------------------------- | ---- | ------------------------------- | ------------------------ |
+| D-01 | Subir a stack (`docker compose up`) e rodar `npm test`              | S    | — (não gerou código)            | ✅ Feita em 2026-10-28    |
+| D-08 | Manter a tela atual ao dar refresh (hoje volta para o login)        | S    | `feat/d08-refresh-mantem-tela`  | ✅ Pronta para PR         |
+| D-02 | Registrar router e modelo de simulados no `monolito/app/main.py`    | S    | `fix/d02-registrar-simulados`   | A fazer                  |
+| D-03 | Cadastro de turma salvando na API                                   | S    | `feat/d03-cadastro-turma`       | A fazer                  |
+| D-04 | `simuladosService.js` + lista e criação de simulado integradas      | M    | `feat/d04-simulados`            | A fazer                  |
+| D-05 | Cadastro do gabarito oficial (`PUT /simulados/{id}/gabarito`)       | M    | `feat/d05-gabarito-oficial`     | A fazer                  |
+| D-06 | Escaneamento: enviar imagem ao `scan_service` e exibir as respostas | M    | `feat/d06-escaneamento`         | A fazer                  |
+| D-07 | Calcular e mostrar a nota (respostas lidas × gabarito oficial)      | S    | `feat/d07-nota`                 | A fazer                  |
 
 Ordem: D-01 → D-08 → D-02 → D-03 → D-04 → D-05 → D-06 → D-07 (a tabela já está nessa ordem).
 
@@ -88,6 +88,22 @@ Mapa das telas de simulado:
 5. Em `monolito/`, se houver ambiente Python disponível: `pytest`.
 
 **Aceite:** um relatório curto dizendo o que subiu, o que passou e o que falhou (com a mensagem de erro). Se algo falhar, reportar ao usuário antes de seguir para as outras tasks.
+
+**Resultado (2026-10-28, `main` em `35ca9fe`):** ✅ nada bloqueia as próximas tasks.
+
+| Verificação | Resultado |
+| --- | --- |
+| `npm test` (frontend) | 3/3 passaram |
+| `npm run lint` | Sem erros, 10 warnings (variáveis não usadas, exports no `App.jsx`, `error = error` em `api.js`). Não precisam ser corrigidos. |
+| `pytest` (monolito, rodado com `docker compose exec -T monolito pytest -q`) | 36/36 passaram |
+| Frontend `:5173`, monolito `:8000` (`/`, `/docs`, `/usuarios`, `/turmas`), scan `:8001/health` | Todos 200 |
+| `GET /simulados` | 404, como esperado: é o problema da D-02 |
+
+Observações:
+
+- Na primeira subida, o monolito falha ao conectar no Postgres porque o banco ainda não está pronto. O `restart: always` reinicia o contêiner e ele sobe normal. Só gera um erro no log.
+- Os testes do frontend imprimem avisos `act(...)`. Não fazem nenhum teste falhar.
+- O banco começa vazio: `/usuarios` e `/turmas` retornam `[]`.
 
 ---
 
