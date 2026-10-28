@@ -251,7 +251,7 @@ Não mexa em mais nada do backend.
 **Contrato da API:**
 
 - `GET /simulados/{id}/gabarito` → `[{ id, simulado_id, num_questao, alt_correta }]`.
-- `PUT /simulados/{id}/gabarito` com `[{ num_questao, alt_correta }]`. **Substitui** o gabarito inteiro e devolve a lista salva.
+- `PUT /simulados/{id}/gabarito` com `[{ num_questao, alt_correta }]`. Atualiza as questões enviadas e insere as novas, e devolve o gabarito completo. **Não apaga** questões que ficaram de fora da lista: se uma questão já salva for desmarcada na tela, ela continua no banco. Para a demo isso não importa.
 - Regras do backend:
   - `alt_correta` precisa ser A, B, C, D ou E.
   - Lista vazia, número de questão repetido ou maior que `total_questoes` retorna 400 com mensagem em `detail`.

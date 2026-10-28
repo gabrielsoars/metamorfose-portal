@@ -10,6 +10,9 @@ def listar_turmas(db: Session) -> list[Turma]:
 def buscar_turma_por_id(db: Session, turma_id: int) -> Turma | None:
     return db.query(Turma).filter(Turma.id == turma_id).first()
 
+def buscar_turmas_por_ids(db: Session, turmas_ids: list[int]) -> list[Turma]:
+    return db.query(Turma).filter(Turma.id.in_(turmas_ids)).all()
+
 def criar_turma(db: Session, turma_in: TurmaCreate) -> Turma | None:
     nova_turma = Turma(
         nome=turma_in.nome,
