@@ -1,8 +1,37 @@
-import { ArrowLeft, Info } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Info, ChevronDown } from 'lucide-react';
 import { C } from '../../data/constants.js';
+import { criarTurma, normalizeTurma } from '../../services/turmasService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
 
-export function TurmaCadastroScreen({ go }) {
+const inputClass = 'w-full px-4 py-3 bg-white rounded-xl border border-gray-200 outline-none text-gray-800 font-medium';
+const onFocus = (e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; };
+const onBlur = (e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; };
+
+export function TurmaCadastroScreen({ go, onRefresh }) {
+  const [nome, setNome] = useState('');
+  const [ano, setAno] = useState('2026');
+  const [turno, setTurno] = useState('Manhã');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (saving) return;
+    if (!nome.trim() || !Number(ano)) {
+      window.alert('Preencha o nome e o ano da turma.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const criada = await criarTurma({ nome: nome.trim(), ano: Number(ano), turno });
+      if (onRefresh) await onRefresh();
+      go('turma-detalhes', normalizeTurma(criada));
+    } catch (error) {
+      window.alert(error.message || 'Não foi possível criar a turma.');
+      setSaving(false);
+    }
+  }
+
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
@@ -28,14 +57,47 @@ export function TurmaCadastroScreen({ go }) {
           <label className="block text-sm font-semibold text-gray-900 mb-1">Nome de Identificação</label>
           <input
             type="text"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
             placeholder="Ex: Extensivo Noturno - 2026"
-            className="w-full px-4 py-3 bg-white rounded-xl border border-gray-200 outline-none text-gray-800 font-medium"
-            onFocus={(e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; }}
-            onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
+            className={inputClass}
+            onFocus={onFocus}
+            onBlur={onBlur}
           />
         </div>
 
-        <OrangeBtn onClick={() => go('prof-turmas')}>Salvar Turma</OrangeBtn>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Ano</label>
+            <input
+              type="number"
+              value={ano}
+              onChange={(e) => setAno(e.target.value)}
+              className={inputClass}
+              onFocus={onFocus}
+              onBlur={onBlur}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Turno</label>
+            <div className="relative">
+              <select
+                value={turno}
+                onChange={(e) => setTurno(e.target.value)}
+                className={`${inputClass} appearance-none`}
+                onFocus={onFocus}
+                onBlur={onBlur}
+              >
+                <option>Manhã</option>
+                <option>Tarde</option>
+                <option>Noite</option>
+              </select>
+              <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        <OrangeBtn onClick={handleSave}>{saving ? 'Salvando...' : 'Salvar Turma'}</OrangeBtn>
       </div>
     </MobileShell>
   );
