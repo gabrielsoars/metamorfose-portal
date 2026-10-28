@@ -17,3 +17,10 @@ export const normalizeTurma = (turma) => {
 export function listarTurmas() {
   return requestJson('/turmas');
 }
+
+export function criarTurma(turma) {
+  return requestJson('/turmas', {
+    method: 'POST',
+    body: JSON.stringify(turma),
+  });
+}
