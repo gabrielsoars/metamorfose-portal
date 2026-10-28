@@ -101,20 +101,23 @@ def health():
 async def processar(
     arquivo: UploadFile = File(..., description="Imagem do gabarito (JPG, PNG, etc.)"),
     num_alternativas: int = Query(5, ge=2, le=10, description="Alternativas por questão (padrão: 5)"),
-    limiar_marcado: float = Query(0.35, ge=0.1, le=0.9, description="Sensibilidade de detecção (0.1–0.9)")
+    limiar_marcado: float = Query(0.25, ge=0.1, le=0.9, description="Sensibilidade de detecção (0.1–0.9)"),
+    num_questoes: Optional[int] = Query(None, ge=1, description="Quantidade de questões da prova (padrão: todas do cartão)")
 ):
     """
     Recebe a imagem do gabarito e retorna as respostas detectadas em JSON.
 
     - **arquivo**: imagem do gabarito
     - **num_alternativas**: quantas colunas de bolhas existem (padrão 5 = A–E)
-    - **limiar_marcado**: fração mínima de preenchimento para considerar marcada (padrão 0.35)
+    - **limiar_marcado**: fração mínima de preenchimento para considerar marcada (padrão 0.25)
+    - **num_questoes**: considera só as N primeiras questões do cartão
     """
     imagem = carregar_imagem(arquivo)
     resultado = processar_gabarito(
         imagem,
         num_alternativas=num_alternativas,
         limiar_marcado=limiar_marcado,
+        num_questoes=num_questoes,
         gerar_debug=False
     )
 
@@ -138,7 +141,8 @@ async def processar(
 async def processar_debug(
     arquivo: UploadFile = File(...),
     num_alternativas: int = Query(5, ge=2, le=10),
-    limiar_marcado: float = Query(0.35, ge=0.1, le=0.9)
+    limiar_marcado: float = Query(0.25, ge=0.1, le=0.9),
+    num_questoes: Optional[int] = Query(None, ge=1)
 ):
     """
     Igual a /processar, mas também retorna a imagem original com as bolhas
@@ -150,6 +154,7 @@ async def processar_debug(
         imagem,
         num_alternativas=num_alternativas,
         limiar_marcado=limiar_marcado,
+        num_questoes=num_questoes,
         gerar_debug=True
     )
 
