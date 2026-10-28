@@ -31,3 +31,6 @@ def atualizar_turma(db: Session, turma: Turma, dados_atualizacao: dict):
     db.commit()
     db.refresh(turma)
     return turma
+
+def buscar_turmas_por_ids(db: Session, turmas_ids: list[int]) -> list[Turma]:
+    return db.query(Turma).filter(Turma.id.in_(turmas_ids)).all()
