@@ -19,6 +19,14 @@ engine_test = create_engine(
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine_test)
 
+@pytest.fixture(autouse=True)
+def limites_zerados():
+    # Os contadores de tentativas ficam em memória; cada teste começa do zero
+    from app.services import auth_service
+    auth_service.resetar_limites()
+    yield
+    auth_service.resetar_limites()
+
 @pytest.fixture(scope="function")
 def db_session():
     # Cria as tabelas na memória antes de cada teste
@@ -69,6 +77,8 @@ def chaves_jwt(tmp_path, monkeypatch):
     monkeypatch.setenv("JWT_PRIVATE_KEY_PATH", str(caminho))
     get_settings.cache_clear()
     security._carregar_chave_privada.cache_clear()
+    security._carregar_chave_publica.cache_clear()
     yield publica_pem
     get_settings.cache_clear()
     security._carregar_chave_privada.cache_clear()
+    security._carregar_chave_publica.cache_clear()

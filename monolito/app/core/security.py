@@ -3,6 +3,7 @@ from functools import lru_cache
 
 import bcrypt
 import jwt
+from cryptography.hazmat.primitives import serialization
 
 from .config import get_settings
 
@@ -31,10 +32,48 @@ def _carregar_chave_privada(caminho: str) -> str:
         return arquivo.read()
 
 
+@lru_cache
+def _carregar_chave_publica(caminho_privada: str) -> str:
+    # Derivada da chave privada: o monolito não precisa de um arquivo a mais
+    privada = serialization.load_pem_private_key(
+        _carregar_chave_privada(caminho_privada).encode(), password=None
+    )
+    return privada.public_key().public_bytes(
+        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode()
+
+
+def _caminho_chave_privada() -> str:
+    caminho = get_settings().jwt_private_key_path
+    if not caminho:
+        raise RuntimeError("JWT_PRIVATE_KEY_PATH não configurado.")
+    return caminho
+
+
+def decodificar_access_token(token: str) -> int | None:
+    """Valida assinatura, expiração, emissor e audiência; retorna o id do usuário ou None."""
+    settings = get_settings()
+    try:
+        payload = jwt.decode(
+            token,
+            _carregar_chave_publica(_caminho_chave_privada()),
+            algorithms=[settings.jwt_algorithm],
+            audience=settings.jwt_audience,
+            issuer=settings.jwt_issuer,
+            options={"require": ["sub", "exp", "iat", "iss", "aud"]},
+        )
+    except jwt.PyJWTError:
+        return None
+
+    sub = payload["sub"]
+    if not isinstance(sub, str) or not sub.isdigit():
+        return None
+    return int(sub)
+
+
 def criar_access_token(usuario_id: int) -> str:
     settings = get_settings()
-    if not settings.jwt_private_key_path:
-        raise RuntimeError("JWT_PRIVATE_KEY_PATH não configurado.")
+    caminho = _caminho_chave_privada()
 
     agora = datetime.now(timezone.utc)
     payload = {
@@ -44,5 +83,5 @@ def criar_access_token(usuario_id: int) -> str:
         "iat": agora,
         "exp": agora + timedelta(minutes=settings.jwt_expire_minutes),
     }
-    chave = _carregar_chave_privada(settings.jwt_private_key_path)
+    chave = _carregar_chave_privada(caminho)
     return jwt.encode(payload, chave, algorithm=settings.jwt_algorithm)
