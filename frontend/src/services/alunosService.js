@@ -24,3 +24,7 @@ export function atualizarAluno(id, aluno) {
     body: JSON.stringify(aluno),
   });
 }
+
+export function excluirAluno(id) {
+  return requestJson(`/alunos/${id}`, { method: 'DELETE' });
+}

@@ -31,3 +31,7 @@ export function atualizarTurma(id, turma) {
     body: JSON.stringify(turma),
   });
 }
+
+export function excluirTurma(id) {
+  return requestJson(`/turmas/${id}`, { method: 'DELETE' });
+}
