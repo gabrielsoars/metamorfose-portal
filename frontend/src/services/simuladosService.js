@@ -106,3 +106,39 @@ export function montarRanking(alunos) {
     media: { acertos: soma('acertos') / ranking.length, total: soma('total') / ranking.length, percentual: soma('percentual') / ranking.length },
   };
 }
+
+// Não há endpoint agregado por questão: o percentual de erro é calculado a partir do
+// detalhamento das correções salvas. Ignora questões anuladas (contam como acerto para todos)
+// e questões acima de total_questoes. Ordena do maior para o menor percentual de erro.
+export function calcularQuestoesComErro(correcoes, totalQuestoes) {
+  const limite = totalQuestoes || Infinity;
+  const porQuestao = new Map();
+
+  correcoes.forEach((correcao) => {
+    (correcao?.detalhamento || []).forEach((d) => {
+      if (d.anulada || d.questao > limite) return;
+      const item = porQuestao.get(d.questao) || { questao: d.questao, erros: 0, total: 0 };
+      item.total += 1;
+      if (!d.correto) item.erros += 1;
+      porQuestao.set(d.questao, item);
+    });
+  });
+
+  return [...porQuestao.values()]
+    .map((item) => ({ ...item, pct: Math.round((item.erros / item.total) * 100) }))
+    .sort((a, b) => b.erros * a.total - a.erros * b.total || b.total - a.total || a.questao - b.questao);
+}
+
+// Uma chamada para listar os alunos + uma por aluno corrigido (da turma escolhida, se houver).
+// Alunos pendentes não geram chamada.
+export async function carregarQuestoesComErro(simulado, turmaId = '') {
+  const { alunos = [] } = await listarAlunosDoSimulado(simulado.id);
+  const corrigidos = alunos.filter(
+    (a) => a.status === 'CORRIGIDO' && (!turmaId || String(a.turma_id) === String(turmaId)),
+  );
+  const correcoes = await Promise.all(corrigidos.map((a) => obterCorrecaoAluno(simulado.id, a.id)));
+  return {
+    corrigidos: corrigidos.length,
+    questoes: calcularQuestoesComErro(correcoes, simulado.total_questoes),
+  };
+}
