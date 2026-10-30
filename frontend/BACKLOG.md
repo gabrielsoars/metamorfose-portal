@@ -22,8 +22,8 @@ Tamanho: S (≤ meio dia) · M (1–2 dias)
 | D-03 | Cadastro de turma salvando na API                                   | S    | `feat/d03-cadastro-turma`       | ✅ Mergeada (PR #10)      |
 | D-04 | `simuladosService.js` + lista e criação de simulado integradas      | M    | `feat/d04-simulados`            | ✅ Pronta para PR         |
 | D-05 | Cadastro do gabarito oficial (`PUT /simulados/{id}/gabarito`)       | M    | `feat/d05-gabarito-oficial`     | ✅ Pronta para PR         |
-| D-06 | Escaneamento: enviar imagem ao `scan_service` e exibir as respostas | M    | `feat/d06-escaneamento`         | A fazer                  |
-| D-07 | Calcular e mostrar a nota (respostas lidas × gabarito oficial)      | S    | `feat/d07-nota`                 | A fazer                  |
+| D-06 | Escaneamento: enviar imagem ao `scan_service` e exibir as respostas | M    | `feat/d06-escaneamento`         | ✅ Pronta para PR         |
+| D-07 | Calcular e mostrar a nota (respostas lidas × gabarito oficial)      | S    | `feat/d07-nota`                 | ✅ Pronta para PR         |
 
 Ordem: D-01 → D-08 → D-02 → D-03 → D-04 → D-05 → D-06 → D-07 (a tabela já está nessa ordem).
 
