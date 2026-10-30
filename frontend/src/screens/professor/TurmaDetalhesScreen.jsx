@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, X, Search, Edit2, UserPlus, Trash2, Save } from 'lucide-react';
 import { C, FALLBACK_ALUNOS } from '../../data/constants.js';
 import { atualizarAluno, criarAluno, excluirAluno, listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
 import { excluirTurma } from '../../services/turmasService.js';
-import { OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn, Sheet } from '../../components/ui.jsx';
+import { useEscape } from '../../components/hooks.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx';
@@ -22,6 +23,13 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
   // Exclusão pendente de confirmação: { tipo: 'turma' } ou { tipo: 'aluno', aluno }.
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const menuBtn = useRef(null);
+
+  // Esc fecha o menu ⋮ e devolve o foco ao botão.
+  useEscape(() => {
+    setMenuOpen(false);
+    menuBtn.current?.focus();
+  }, menuOpen);
 
   useEffect(() => {
     if (!turma || !turma.id) return;
@@ -127,15 +135,16 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
           <h1 className="text-lg font-bold text-gray-900 leading-tight truncate">{turma?.name || 'Turma'}</h1>
           <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: C.orange }}>{list.length} Alunos Matriculados</p>
         </div>
-        <button type="button" aria-label="Mais opções" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        {/* Menu ⋮ ancorado no botão (popover), em qualquer largura. */}
+        <div className="relative">
+        <button ref={menuBtn} type="button" aria-label="Mais opções" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
         </button>
-      </header>
 
       {menuOpen && (
         <>
-          <div className="absolute inset-0 z-30" onClick={() => setMenuOpen(false)} />
-          <div role="menu" className="absolute right-4 top-24 z-40 min-w-[11rem] bg-white rounded-xl border border-gray-100 shadow-lg py-1">
+          <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+          <div role="menu" className="absolute right-0 top-12 z-40 min-w-[11rem] bg-white rounded-xl border border-gray-100 shadow-lg py-1">
             {menuItems.map(({ key, label, icon: Icon, danger, onClick }) => (
               <button
                 key={key}
@@ -151,6 +160,8 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
           </div>
         </>
       )}
+        </div>
+      </header>
 
       <div className={`flex-1 overflow-y-auto p-6 space-y-5 pb-8 ${GUTTER}`} style={{ scrollbarWidth: 'none' }}>
         {/* Celular: botão, formulário, busca (empilhados). Desktop: busca e botão na mesma linha, formulário abaixo. */}
@@ -230,20 +241,14 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
       )}
 
       {editingAluno && (
-        <>
-          <div className="absolute inset-0 bg-black/50 z-30" onClick={() => setEditingId(null)} />
-          <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-[2rem] z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.12)]" style={{ animation: 'slideUp 0.25s ease-out' }}>
-            <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
-            <div className="w-full flex justify-center pt-4 pb-2">
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
-            </div>
-            <div className="px-6 pb-8 pt-2">
+        <Sheet onClose={() => setEditingId(null)} labelledBy="editar-aluno-titulo">
+            <div className="px-6 pb-8 pt-2 md:pt-6">
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Editar Aluno</p>
-                  <h2 className="text-xl font-bold text-gray-900">{editingAluno.name}</h2>
+                  <h2 id="editar-aluno-titulo" className="text-xl font-bold text-gray-900">{editingAluno.name}</h2>
                 </div>
-                <button type="button" onClick={() => setEditingId(null)} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200">
+                <button type="button" aria-label="Fechar" onClick={() => setEditingId(null)} className="w-10 h-10 md:w-8 md:h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200">
                   <X size={18} />
                 </button>
               </div>
@@ -276,8 +281,7 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
                 </OrangeBtn>
               </div>
             </div>
-          </div>
-        </>
+        </Sheet>
       )}
     </AppShell>
   );

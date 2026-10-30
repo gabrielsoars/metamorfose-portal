@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Search, Edit2, Camera, Check, Clock, Trash2, Trophy } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { excluirSimulado, listarAlunosDoSimulado, normalizeAlunoSimulado, montarRanking } from '../../services/simuladosService.js';
 import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER, HEADER_TOP } from '../../components/layout.js';
+import { DESKTOP_QUERY, useEscape, useMediaQuery } from '../../components/hooks.js';
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx';
 
 // Ações do menu ⋮ do cabeçalho. Para incluir outra, basta acrescentar um item aqui.
@@ -20,6 +22,14 @@ export function SimuladoPainelScreen({ go, simulado }) {
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
   const [alunos, setAlunos] = useState([]);
+  const desktop = useMediaQuery(DESKTOP_QUERY);
+  const menuBtn = useRef(null);
+
+  // Esc fecha o menu ⋮ e devolve o foco ao botão.
+  useEscape(() => {
+    setMenuOpen(false);
+    menuBtn.current?.focus();
+  }, menuOpen);
 
   useEffect(() => {
     if (!simulado) return undefined;
@@ -57,10 +67,107 @@ export function SimuladoPainelScreen({ go, simulado }) {
   const pct = alunos.length ? Math.round((corrected / alunos.length) * 100) : 0;
   const { ranking, media } = montarRanking(alunos);
 
+  // Blocos do corpo. No celular: progresso e busca fixos no topo, ranking e alunos rolando abaixo.
+  // No desktop: alunos à esquerda; progresso e ranking à direita.
+  const progresso = (
+    <>
+      <div className="flex justify-between items-end mb-2">
+        <div>
+          <h2 className="text-sm font-bold text-gray-900">Progresso da Turma</h2>
+          <p className="text-xs text-gray-500 mt-0.5">{corrected} de {alunos.length} provas corrigidas</p>
+        </div>
+        <span className="text-sm font-bold" style={{ color: C.orange }}>{pct}%</span>
+      </div>
+      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mb-4">
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: C.orange }} />
+      </div>
+      <button type="button" onClick={() => go('simulado-gabarito')} className="flex items-center gap-1.5 mb-3 lg:mb-0 text-xs font-bold hover:underline" style={{ color: C.orange }}>
+        <Edit2 size={14} /> Editar gabarito oficial
+      </button>
+    </>
+  );
+
+  const busca = (
+    <div className="relative">
+      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      <input
+        type="text"
+        placeholder="Buscar aluno..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none text-sm font-medium"
+      />
+    </div>
+  );
+
+  const rankingSecao = media && (
+    <section aria-label="Ranking da turma" className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-bold text-gray-900 flex items-center gap-1.5"><Trophy size={16} style={{ color: C.orange }} /> Ranking da turma</h2>
+        <p className="text-xs font-bold text-gray-500">
+          Média: <span className="text-emerald-600">{formatarNumero(media.acertos)} de {formatarNumero(media.total)} ({Math.round(media.percentual)}%)</span>
+        </p>
+      </div>
+      <ol className="space-y-1.5">
+        {ranking.map((a) => (
+          <li key={a.id} className="flex items-center justify-between text-xs font-semibold text-gray-700">
+            <span className="truncate">{`${a.posicao}º ${a.name}`}</span>
+            <span className="font-bold text-emerald-600 shrink-0 ml-2">{Math.round(a.parsed.percentual)}%</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+
+  const listaAlunos = filtered.map((aluno) => (
+    <div key={aluno.id} className="bg-white p-4 rounded-2xl border shadow-sm relative overflow-hidden" style={{ borderColor: aluno.corrected ? '#d1fae5' : '#e5e7eb' }}>
+      {aluno.corrected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500" />}
+      <div className="flex items-center justify-between" style={{ marginLeft: aluno.corrected ? 8 : 0 }}>
+        <div
+          className={`flex-1 ${aluno.corrected ? 'cursor-pointer text-left' : ''}`}
+          {...(aluno.corrected && { role: 'button', tabIndex: 0, 'aria-label': `Ver boletim de ${aluno.name}`, onClick: () => go('aluno-boletim', aluno), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('aluno-boletim', aluno); } } })}
+        >
+          <h3 className="font-bold text-gray-900 text-sm">{aluno.name}</h3>
+          <div className="flex items-center gap-2 mt-1">
+            {aluno.corrected ? (
+              <>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
+                  <Check size={10} strokeWidth={3} /> Corrigido
+                </span>
+                <span className="text-xs font-bold text-gray-500">Nota: <span className="text-emerald-600">{aluno.nota}</span></span>
+              </>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider">
+                <Clock size={10} strokeWidth={3} /> Pendente
+              </span>
+            )}
+          </div>
+          {aluno.corrected && <p className="text-[11px] font-bold mt-1.5" style={{ color: C.orange }}>Ver boletim</p>}
+        </div>
+        {aluno.corrected ? (
+          <button type="button" onClick={() => go('escaneamento', aluno)} aria-label={`Editar correção de ${aluno.name}`} className="w-11 h-11 md:w-9 md:h-9 shrink-0 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-500 hover:text-orange-500 hover:border-orange-300 transition-all">
+            <Edit2 size={16} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => go('escaneamento', aluno)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border font-bold text-xs shadow-sm active:scale-95 transition-all hover:text-white"
+            style={{ background: C.light, color: C.orange, borderColor: `${C.orange}33` }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = C.orange; e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = C.light; e.currentTarget.style.color = C.orange; }}
+          >
+            <Camera size={16} /> Escanear
+          </button>
+        )}
+      </div>
+    </div>
+  ));
+
   return (
     <AppShell go={go} active="simulados" mobileNav={false}>
-      <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => go('prof-dashboard')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+      <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER} shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
+        <button type="button" onClick={() => go('prof-dashboard')} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">
@@ -70,11 +177,12 @@ export function SimuladoPainelScreen({ go, simulado }) {
         <div className="relative">
           <button
             type="button"
+            ref={menuBtn}
             aria-label="Mais opções"
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
-            className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+            className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
           </button>
@@ -99,96 +207,34 @@ export function SimuladoPainelScreen({ go, simulado }) {
         </div>
       </header>
 
-      <div className="bg-white px-6 py-4 border-b border-gray-100 z-10 shadow-sm">
-        <div className="flex justify-between items-end mb-2">
-          <div>
-            <h2 className="text-sm font-bold text-gray-900">Progresso da Turma</h2>
-            <p className="text-xs text-gray-500 mt-0.5">{corrected} de {alunos.length} provas corrigidas</p>
-          </div>
-          <span className="text-sm font-bold" style={{ color: C.orange }}>{pct}%</span>
-        </div>
-        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mb-4">
-          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: C.orange }} />
-        </div>
-        <button type="button" onClick={() => go('simulado-gabarito')} className="flex items-center gap-1.5 mb-3 text-xs font-bold hover:underline" style={{ color: C.orange }}>
-          <Edit2 size={14} /> Editar gabarito oficial
-        </button>
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar aluno..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none text-sm font-medium"
-          />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-6 space-y-3 pb-8" style={{ scrollbarWidth: 'none' }}>
-        {media && (
-          <section aria-label="Ranking da turma" className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-1.5"><Trophy size={16} style={{ color: C.orange }} /> Ranking da turma</h2>
-              <p className="text-xs font-bold text-gray-500">
-                Média: <span className="text-emerald-600">{formatarNumero(media.acertos)} de {formatarNumero(media.total)} ({Math.round(media.percentual)}%)</span>
-              </p>
+      {desktop ? (
+        <div className={`flex-1 overflow-y-auto py-6 ${GUTTER}`} style={{ scrollbarWidth: 'none' }}>
+          <div className="grid grid-cols-[minmax(0,1fr)_22rem] gap-6 items-start">
+            <div className="space-y-3">
+              {busca}
+              {listaAlunos}
             </div>
-            <ol className="space-y-1.5">
-              {ranking.map((a) => (
-                <li key={a.id} className="flex items-center justify-between text-xs font-semibold text-gray-700">
-                  <span className="truncate">{`${a.posicao}º ${a.name}`}</span>
-                  <span className="font-bold text-emerald-600 shrink-0 ml-2">{Math.round(a.parsed.percentual)}%</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-        {filtered.map((aluno) => (
-          <div key={aluno.id} className="bg-white p-4 rounded-2xl border shadow-sm relative overflow-hidden" style={{ borderColor: aluno.corrected ? '#d1fae5' : '#e5e7eb' }}>
-            {aluno.corrected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500" />}
-            <div className="flex items-center justify-between" style={{ marginLeft: aluno.corrected ? 8 : 0 }}>
-              <div
-                className={`flex-1 ${aluno.corrected ? 'cursor-pointer text-left' : ''}`}
-                {...(aluno.corrected && { role: 'button', tabIndex: 0, 'aria-label': `Ver boletim de ${aluno.name}`, onClick: () => go('aluno-boletim', aluno), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('aluno-boletim', aluno); } } })}
-              >
-                <h3 className="font-bold text-gray-900 text-sm">{aluno.name}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  {aluno.corrected ? (
-                    <>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
-                        <Check size={10} strokeWidth={3} /> Corrigido
-                      </span>
-                      <span className="text-xs font-bold text-gray-500">Nota: <span className="text-emerald-600">{aluno.nota}</span></span>
-                    </>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider">
-                      <Clock size={10} strokeWidth={3} /> Pendente
-                    </span>
-                  )}
-                </div>
-                {aluno.corrected && <p className="text-[11px] font-bold mt-1.5" style={{ color: C.orange }}>Ver boletim</p>}
+            <aside className="sticky top-0 space-y-4">
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                {progresso}
               </div>
-              {aluno.corrected ? (
-                <button type="button" onClick={() => go('escaneamento', aluno)} aria-label={`Editar correção de ${aluno.name}`} className="w-9 h-9 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-500 hover:text-orange-500 hover:border-orange-300 transition-all">
-                  <Edit2 size={16} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => go('escaneamento', aluno)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border font-bold text-xs shadow-sm active:scale-95 transition-all hover:text-white"
-                  style={{ background: C.light, color: C.orange, borderColor: `${C.orange}33` }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = C.orange; e.currentTarget.style.color = '#fff'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = C.light; e.currentTarget.style.color = C.orange; }}
-                >
-                  <Camera size={16} /> Escanear
-                </button>
-              )}
-            </div>
+              {rankingSecao}
+            </aside>
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div className={`bg-white px-6 py-4 ${GUTTER} border-b border-gray-100 z-10 shadow-sm`}>
+            {progresso}
+            {busca}
+          </div>
+
+          <div className={`flex-1 overflow-y-auto p-6 space-y-3 pb-8 ${GUTTER}`} style={{ scrollbarWidth: 'none' }}>
+            {rankingSecao}
+            {listaAlunos}
+          </div>
+        </>
+      )}
 
       {confirmDelete && (
         <ConfirmDialog

@@ -1,5 +1,17 @@
+import { useEffect, useRef } from 'react';
+import { useEscape } from './hooks.js';
+
 // Modal de confirmação centralizado (mobile e desktop). Usado antes de ações destrutivas.
+// Esc e o fundo escurecido cancelam (exceto enquanto a ação está em andamento).
 export function ConfirmDialog({ title, message, confirmLabel = 'Excluir', busy = false, onConfirm, onCancel }) {
+  const cancelar = useRef(null);
+  useEscape(onCancel, !busy);
+
+  // Foco inicial em "Cancelar": a opção segura fica sob o Enter/Espaço.
+  useEffect(() => {
+    cancelar.current?.focus();
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="absolute inset-0 bg-black/50" onClick={busy ? undefined : onCancel} />
@@ -8,6 +20,7 @@ export function ConfirmDialog({ title, message, confirmLabel = 'Excluir', busy =
         <p className="text-sm text-gray-600 leading-relaxed mb-6">{message}</p>
         <div className="flex gap-3">
           <button
+            ref={cancelar}
             type="button"
             onClick={onCancel}
             disabled={busy}

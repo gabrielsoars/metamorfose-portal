@@ -4,6 +4,7 @@ import { C } from '../../data/constants.js';
 import { listarSimulados, carregarQuestoesComErro } from '../../services/simuladosService.js';
 import { listarTurmas } from '../../services/turmasService.js';
 import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 
 // Simulados que têm a turma (todos, se nenhuma turma estiver escolhida), do mais recente para o mais antigo.
 const simuladosDaTurma = (simulados, turmaId) =>
@@ -127,7 +128,8 @@ export function FiltrosQuestoes({ q }) {
 }
 
 // Lista de questões (ou o estado vazio/carregando que se aplica). `limite` corta o topo da lista.
-export function QuestoesErroLista({ q, limite }) {
+// `tabela`: no desktop vira tabela (questão | barra | percentual), usada na tela "Ver todas".
+export function QuestoesErroLista({ q, limite, tabela = false }) {
   let mensagem = null;
   if (q.carregandoFiltros) mensagem = 'Carregando...';
   else if (!q.simulado) {
@@ -141,19 +143,26 @@ export function QuestoesErroLista({ q, limite }) {
 
   const questoes = limite ? q.resultado.questoes.slice(0, limite) : q.resultado.questoes;
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${tabela ? 'lg:space-y-0 lg:divide-y lg:divide-gray-100' : ''}`}>
+      {tabela && (
+        <div className="hidden lg:grid lg:grid-cols-[12rem_minmax(0,1fr)_7rem] lg:gap-6 pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+          <span>Questão</span>
+          <span>Índice de erro</span>
+          <span className="text-right">Erraram</span>
+        </div>
+      )}
       {questoes.map(({ questao, erros, total, pct }) => {
         const color = corDoPercentual(pct);
         return (
-          <div key={questao}>
-            <div className="flex justify-between items-end mb-1">
-              <p className="text-xs font-bold text-gray-800">
+          <div key={questao} className={tabela ? 'lg:grid lg:grid-cols-[12rem_minmax(0,1fr)_7rem] lg:items-center lg:gap-6 lg:py-3' : undefined}>
+            <div className={`flex justify-between items-end mb-1 ${tabela ? 'lg:contents' : ''}`}>
+              <p className={`text-xs font-bold text-gray-800 ${tabela ? 'lg:order-1 lg:text-sm' : ''}`}>
                 Questão {String(questao).padStart(2, '0')}
                 <span className="text-[9px] text-gray-400 font-normal ml-1">({erros} de {total} alunos)</span>
               </p>
-              <p className="text-xs font-bold" style={{ color }}>{pct}% erraram</p>
+              <p className={`text-xs font-bold ${tabela ? 'lg:order-3 lg:text-right lg:text-sm' : ''}`} style={{ color }}>{pct}% erraram</p>
             </div>
-            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+            <div className={`w-full bg-gray-100 h-2 rounded-full overflow-hidden ${tabela ? 'lg:order-2 lg:h-3' : ''}`}>
               <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
             </div>
           </div>
@@ -173,8 +182,8 @@ export function QuestoesErroScreen({ go, filtro }) {
       else if (tab === 'simulados') go('simulados-lista');
       else if (tab === 'perfil') go('prof-perfil');
     }}>
-      <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center border-b border-gray-100">
-        <button type="button" onClick={() => go('prof-dashboard', q.filtro)} aria-label="Voltar" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+      <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER} shadow-sm z-20 flex items-center border-b border-gray-100`}>
+        <button type="button" onClick={() => go('prof-dashboard', q.filtro)} aria-label="Voltar" className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="flex-1 px-2">
@@ -183,18 +192,18 @@ export function QuestoesErroScreen({ go, filtro }) {
         </div>
       </header>
 
-      <div className="bg-white px-6 py-4 border-b border-gray-100 z-10">
+      <div className={`bg-white px-6 py-4 ${GUTTER} border-b border-gray-100 z-10 lg:[&>div]:max-w-2xl`}>
         <FiltrosQuestoes q={q} />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 pb-24" style={{ scrollbarWidth: 'none' }}>
+      <div className={`flex-1 overflow-y-auto p-6 pb-8 ${GUTTER}`} style={{ scrollbarWidth: 'none' }}>
         {q.resultado && q.resultado.corrigidos > 0 && (
           <p className="text-xs text-gray-500 mb-4">
             Baseado em {q.resultado.corrigidos} {q.resultado.corrigidos === 1 ? 'prova corrigida' : 'provas corrigidas'}.
           </p>
         )}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-          <QuestoesErroLista q={q} />
+          <QuestoesErroLista q={q} tabela />
         </div>
       </div>
     </AppShell>
