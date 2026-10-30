@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Check, AlertTriangle, RefreshCw } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { obterGabarito } from '../../services/simuladosService.js';
+import { obterGabarito, obterCorrecaoAluno, respostasSalvas, montarRespostas, salvarRespostasAluno } from '../../services/simuladosService.js';
 import { processarGabarito } from '../../services/scanService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
 
@@ -19,6 +19,7 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
   const [scanTotal, setScanTotal] = useState(null);
   // Gabarito oficial: null enquanto carrega, depois a lista de { num_questao, alt_correta, anulada }.
   const [gabarito, setGabarito] = useState(null);
+  const [saving, setSaving] = useState(false);
   const fileInput = useRef(null);
 
   useEffect(() => {
@@ -36,6 +37,26 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
       isMounted = false;
     };
   }, [simulado.id]);
+
+  // Aluno já corrigido: carrega as respostas salvas (sem sobrescrever o que o scan já preencheu).
+  useEffect(() => {
+    let isMounted = true;
+
+    obterCorrecaoAluno(simulado.id, aluno.id)
+      .then((correcao) => {
+        const salvas = respostasSalvas(correcao);
+        if (isMounted && Object.keys(salvas).length) {
+          setAnswers((prev) => (Object.keys(prev).length ? prev : salvas));
+        }
+      })
+      .catch((error) => {
+        if (isMounted) window.alert(error.message || 'Não foi possível carregar as respostas salvas.');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [simulado.id, aluno.id]);
 
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
@@ -72,6 +93,27 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
       window.alert(error.message || 'Não foi possível processar a imagem.');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleConcluir = async () => {
+    if (saving) return;
+    if (!gabarito || gabarito.length === 0) {
+      window.alert('Cadastre o gabarito oficial antes de concluir a correção.');
+      return;
+    }
+    if (Object.keys(answers).length === 0) {
+      window.alert('Envie a foto ou marque ao menos uma resposta antes de concluir.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await salvarRespostasAluno(simulado.id, aluno.id, montarRespostas(gabarito, answers, total));
+      go('simulado-painel');
+    } catch (error) {
+      window.alert(error.message || 'Não foi possível salvar a correção.');
+      setSaving(false);
     }
   };
 
@@ -169,8 +211,8 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
             <p className="text-lg font-black text-emerald-600">{acertos} / {totalGabarito} <span className="text-xs font-bold text-emerald-600/70 ml-1">acertos</span></p>
           )}
         </div>
-        <OrangeBtn onClick={() => go('simulado-painel')}>
-          Concluir <Check size={20} />
+        <OrangeBtn onClick={handleConcluir}>
+          {saving ? 'Salvando...' : 'Concluir'} <Check size={20} />
         </OrangeBtn>
       </div>
     </MobileShell>
