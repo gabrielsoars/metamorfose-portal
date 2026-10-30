@@ -1,21 +1,34 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, Search, Edit2, Camera, Check, Clock } from 'lucide-react';
 import { C } from '../../data/constants.js';
+import { listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
 import { MobileShell } from '../../components/ui.jsx';
 
-const alunos = [
-  { id: 1, name: 'Ana Clara Silva', corrected: true, nota: '32/40' },
-  { id: 2, name: 'Bruno Costa Santos', corrected: false },
-  { id: 3, name: 'Carlos Eduardo Ferreira', corrected: false },
-  { id: 4, name: 'Daniela Oliveira', corrected: false },
-  { id: 5, name: 'Eduardo Lima', corrected: false },
-];
-
-export function SimuladoPainelScreen({ go }) {
+export function SimuladoPainelScreen({ go, simulado }) {
   const [search, setSearch] = useState('');
+  const [alunos, setAlunos] = useState([]);
+
+  useEffect(() => {
+    if (!simulado) return undefined;
+    let isMounted = true;
+
+    // Nada é salvo por aluno, então todos aparecem como não corrigidos.
+    Promise.all(simulado.turmas.map((t) => listarAlunosDaTurma(t.id)))
+      .then((porTurma) => {
+        if (isMounted) setAlunos(porTurma.flat().map(normalizeAluno).map((a) => ({ ...a, corrected: false })));
+      })
+      .catch((error) => {
+        if (isMounted) window.alert(error.message || 'Não foi possível carregar os alunos.');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [simulado]);
+
   const filtered = alunos.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
   const corrected = alunos.filter((a) => a.corrected).length;
-  const pct = Math.round((corrected / alunos.length) * 100);
+  const pct = alunos.length ? Math.round((corrected / alunos.length) * 100) : 0;
 
   return (
     <MobileShell>
@@ -24,8 +37,8 @@ export function SimuladoPainelScreen({ go }) {
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Extensivo Noturno</p>
-          <h1 className="text-base font-bold text-gray-900 leading-tight truncate">1º Simulado ENEM</h1>
+          <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>{simulado?.turmas.map((t) => t.nome).join(', ')}</p>
+          <h1 className="text-base font-bold text-gray-900 leading-tight truncate">{simulado?.titulo}</h1>
         </div>
         <button type="button" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
@@ -43,6 +56,9 @@ export function SimuladoPainelScreen({ go }) {
         <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mb-4">
           <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: C.orange }} />
         </div>
+        <button type="button" onClick={() => go('simulado-gabarito')} className="flex items-center gap-1.5 mb-3 text-xs font-bold hover:underline" style={{ color: C.orange }}>
+          <Edit2 size={14} /> Editar gabarito oficial
+        </button>
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -84,7 +100,7 @@ export function SimuladoPainelScreen({ go }) {
               ) : (
                 <button
                   type="button"
-                  onClick={() => go('escaneamento')}
+                  onClick={() => go('escaneamento', aluno)}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl border font-bold text-xs shadow-sm active:scale-95 transition-all hover:text-white"
                   style={{ background: C.light, color: C.orange, borderColor: `${C.orange}33` }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = C.orange; e.currentTarget.style.color = '#fff'; }}
