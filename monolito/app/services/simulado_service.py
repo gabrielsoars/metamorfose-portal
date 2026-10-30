@@ -124,6 +124,12 @@ def _buscar_simulado(db: Session, simulado_id: int) -> Simulado:
 def _total_questoes(simulado: Simulado, gabarito: list[Gabarito]) -> int:
     return simulado.total_questoes or len(gabarito)
 
+def _gabarito_dentro_do_total(simulado: Simulado, gabarito: list[Gabarito]) -> list[Gabarito]:
+    """Ignora itens de gabarito acima do total de questões (sobras de quando o total foi reduzido)."""
+    if not simulado.total_questoes:
+        return gabarito
+    return [g for g in gabarito if g.num_questao <= simulado.total_questoes]
+
 def _questao_correta(questao: Gabarito, resposta: str | None) -> bool:
     """Questão anulada conta como acerto para todos; em branco ou sem resposta conta como erro."""
     if questao.anulada:
@@ -139,7 +145,7 @@ def _formatar_nota(acertos: int, total: int) -> str:
 
 def listar_alunos_do_simulado(db: Session, simulado_id: int) -> dict:
     simulado = _buscar_simulado(db, simulado_id)
-    gabarito = simulado_repository.obter_gabarito(db, simulado_id)
+    gabarito = _gabarito_dentro_do_total(simulado, simulado_repository.obter_gabarito(db, simulado_id))
     total = _total_questoes(simulado, gabarito)
 
     respostas_por_aluno: dict[int, dict[int, str | None]] = {}
@@ -162,7 +168,7 @@ def listar_alunos_do_simulado(db: Session, simulado_id: int) -> dict:
     return {"total": len(alunos), "alunos": alunos}
 
 def _montar_correcao(db: Session, simulado: Simulado, aluno: Aluno) -> dict:
-    gabarito = simulado_repository.obter_gabarito(db, simulado.id)
+    gabarito = _gabarito_dentro_do_total(simulado, simulado_repository.obter_gabarito(db, simulado.id))
     total = _total_questoes(simulado, gabarito)
     respostas = {
         r.questao_id: r.resposta_marcada
