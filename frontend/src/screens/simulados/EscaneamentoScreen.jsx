@@ -1,18 +1,64 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Check, AlertTriangle, RefreshCw } from 'lucide-react';
 import { C } from '../../data/constants.js';
+import { processarGabarito } from '../../services/scanService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
 
-export function EscaneamentoScreen({ go }) {
-  const [answers, setAnswers] = useState({ aq1: 'A', aq2: 'B' });
+const AVISO_STATUS = {
+  sem_resposta: 'Atenção: Em branco ou rasura',
+  multipla_marcacao: 'Atenção: Múltipla marcação',
+};
 
-  const questions = [
-    { key: 'aq1', num: '01', warn: 'Atenção: Em branco ou rasura' },
-    { key: 'aq2', num: '02' },
-    { key: 'aq3', num: '03', alert: true },
-  ];
+export function EscaneamentoScreen({ go, simulado, aluno }) {
+  // Respostas e status do scan, indexados pelo número da questão.
+  const [answers, setAnswers] = useState({});
+  const [statuses, setStatuses] = useState({});
+  const [preview, setPreview] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [scanTotal, setScanTotal] = useState(null);
+  const fileInput = useRef(null);
 
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview);
+  }, [preview]);
+
+  const total = simulado.total_questoes;
+  const numeros = Array.from({ length: total }, (_, i) => i + 1);
   const score = 35;
+
+  const handleFile = async (event) => {
+    const arquivo = event.target.files?.[0];
+    event.target.value = '';
+    if (!arquivo) return;
+
+    setProcessing(true);
+    try {
+      const resultado = await processarGabarito(arquivo, total);
+      const lidas = {};
+      const status = {};
+      resultado.questoes.forEach((q) => {
+        if (q.questao > total) return;
+        if (q.resposta) lidas[q.questao] = q.resposta;
+        status[q.questao] = q.status;
+      });
+      setAnswers(lidas);
+      setStatuses(status);
+      setScanTotal(resultado.total_questoes);
+      setPreview(URL.createObjectURL(arquivo));
+    } catch (error) {
+      window.alert(error.message || 'Não foi possível processar a imagem.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const banner = processing
+    ? 'Processando...'
+    : scanTotal === null
+      ? 'Envie a foto do gabarito preenchido pelo aluno.'
+      : scanTotal !== total
+        ? `O scan leu ${scanTotal} questões, mas o simulado tem ${total}. As não lidas ficam em branco.`
+        : 'Revise as alternativas lidas pelo sistema.';
 
   return (
     <MobileShell>
@@ -22,66 +68,71 @@ export function EscaneamentoScreen({ go }) {
         </button>
         <div className="text-center flex-1 px-2">
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Aluno em Correção</p>
-          <h1 className="text-base font-bold text-gray-900 truncate">Bruno Costa Santos</h1>
+          <h1 className="text-base font-bold text-gray-900 truncate">{aluno.name}</h1>
         </div>
         <div className="w-10 h-10" />
       </header>
 
       <div className="bg-gray-900 w-full h-48 relative flex items-center justify-center overflow-hidden shrink-0">
-        <div className="w-2/3 h-[120%] bg-white rounded-md shadow-2xl opacity-80 flex flex-col items-center pt-4 transform rotate-2">
-          <div className="w-1/2 h-1 bg-gray-300 mb-2 rounded" />
-          <div className="w-2/3 h-1 bg-gray-300 mb-6 rounded" />
-          <div className="grid grid-cols-5 gap-1 w-3/4">
-            {[1, 0, 0, 0, 0, 0, 1, 0, 0, 0].map((filled, i) => (
-              <div key={i} className="w-2 h-2 rounded-full border border-gray-400" style={{ background: filled ? '#1f2937' : 'transparent', marginTop: i >= 5 ? 4 : 0 }} />
-            ))}
-          </div>
-        </div>
-        <button type="button" className="absolute bottom-3 right-3 bg-white/20 backdrop-blur-md border border-white/30 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-white/30 transition-colors">
-          <RefreshCw size={14} /> Refazer Foto
+        {preview ? (
+          <img src={preview} alt="Gabarito enviado" className="h-full w-full object-contain" />
+        ) : (
+          <p className="text-xs font-semibold text-white/60">Nenhuma foto enviada</p>
+        )}
+        <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+        <button
+          type="button"
+          onClick={() => fileInput.current?.click()}
+          disabled={processing}
+          className="absolute bottom-3 right-3 bg-white/20 backdrop-blur-md border border-white/30 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-white/30 transition-colors"
+        >
+          <RefreshCw size={14} /> {processing ? 'Processando...' : preview ? 'Refazer Foto' : 'Enviar foto'}
         </button>
       </div>
 
       <div className="bg-yellow-50 px-6 py-2.5 border-b border-yellow-100 flex items-center gap-2 shrink-0">
         <AlertTriangle size={16} className="text-yellow-600" />
-        <p className="text-xs text-yellow-700 font-semibold">Revise as alternativas lidas pelo sistema.</p>
+        <p className="text-xs text-yellow-700 font-semibold">{banner}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-3 pb-32" style={{ scrollbarWidth: 'none' }}>
-        {questions.map(({ key, num, alert }) => (
-          <div key={key}>
-            <div className="flex items-center justify-between p-3 rounded-xl border shadow-sm relative" style={{ background: alert ? '#fef2f2' : '#fff', borderColor: alert ? '#fecaca' : '#f3f4f6' }}>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ background: alert ? '#fee2e2' : '#f9fafb', color: alert ? '#b91c1c' : '#374151' }}>
-                {num}
+        {numeros.map((num) => {
+          const aviso = AVISO_STATUS[statuses[num]];
+          return (
+            <div key={num}>
+              <div className="flex items-center justify-between p-3 rounded-xl border shadow-sm relative" style={{ background: aviso ? '#fef2f2' : '#fff', borderColor: aviso ? '#fecaca' : '#f3f4f6' }}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ background: aviso ? '#fee2e2' : '#f9fafb', color: aviso ? '#b91c1c' : '#374151' }}>
+                  {String(num).padStart(2, '0')}
+                </div>
+                <div className="flex gap-1.5">
+                  {['A', 'B', 'C', 'D', 'E'].map((opt) => (
+                    <label key={opt} className="cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`q${num}`}
+                        value={opt}
+                        className="sr-only"
+                        checked={answers[num] === opt}
+                        onChange={() => setAnswers((prev) => ({ ...prev, [num]: opt }))}
+                      />
+                      <div
+                        className="w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold transition-all"
+                        style={{
+                          background: answers[num] === opt ? '#1f2937' : '#fff',
+                          borderColor: answers[num] === opt ? '#1f2937' : aviso ? '#fecaca' : '#e5e7eb',
+                          color: answers[num] === opt ? '#fff' : '#6b7280',
+                        }}
+                      >
+                        {opt}
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-1.5">
-                {['A', 'B', 'C', 'D', 'E'].map((opt) => (
-                  <label key={opt} className="cursor-pointer">
-                    <input
-                      type="radio"
-                      name={key}
-                      value={opt}
-                      className="sr-only"
-                      checked={answers[key] === opt}
-                      onChange={() => setAnswers((prev) => ({ ...prev, [key]: opt }))}
-                    />
-                    <div
-                      className="w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold transition-all"
-                      style={{
-                        background: answers[key] === opt ? '#1f2937' : '#fff',
-                        borderColor: answers[key] === opt ? '#1f2937' : alert ? '#fecaca' : '#e5e7eb',
-                        color: answers[key] === opt ? '#fff' : '#6b7280',
-                      }}
-                    >
-                      {opt}
-                    </div>
-                  </label>
-                ))}
-              </div>
+              {aviso && <p className="text-[10px] font-bold text-red-500 mt-1 ml-2 uppercase tracking-wider">{aviso}</p>}
             </div>
-            {alert && <p className="text-[10px] font-bold text-red-500 mt-1 ml-2 uppercase tracking-wider">Atenção: Em branco ou rasura</p>}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="absolute bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-30">

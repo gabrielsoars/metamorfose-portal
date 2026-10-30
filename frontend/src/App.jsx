@@ -3,6 +3,7 @@ import { FALLBACK_PROFESSORS, FALLBACK_TURMAS } from './data/constants.js';
 import { listarUsuarios, normalizeUsuario } from './services/usuariosService.js';
 import { listarTurmas, normalizeTurma } from './services/turmasService.js';
 import { obterSimulado } from './services/simuladosService.js';
+import { listarAlunosDaTurma, normalizeAluno } from './services/alunosService.js';
 import { LoginScreen, AtivacaoScreen } from './screens/auth/index.js';
 import { AdminHomeScreen, AdminGestaoScreen, AdminCadastroScreen } from './screens/admin/index.js';
 import { ProfDashboardScreen, TurmasScreen, TurmaDetalhesScreen, TurmaCadastroScreen, ProfPerfilScreen } from './screens/professor/index.js';
@@ -42,6 +43,7 @@ export default function App() {
   const [selectedProfessor, setSelectedProfessor] = useState(null);
   const [selectedTurma, setSelectedTurma] = useState(null);
   const [selectedSimulado, setSelectedSimulado] = useState(null);
+  const [selectedAluno, setSelectedAluno] = useState(null);
 
   const loadData = async () => {
     try {
@@ -77,8 +79,20 @@ export default function App() {
       }
       if (SIMULADO_SCREENS.includes(savedNav.screen)) {
         const simulado = savedNav.simuladoId ? await obterSimulado(savedNav.simuladoId).catch(() => null) : null;
-        if (simulado) setSelectedSimulado(simulado);
-        else setScreen('simulados-lista');
+        if (!simulado) {
+          setScreen('simulados-lista');
+        } else {
+          setSelectedSimulado(simulado);
+          if (savedNav.screen === 'escaneamento') {
+            // O aluno não tem endpoint próprio: procura nos alunos das turmas do simulado.
+            const porTurma = await Promise.all(
+              simulado.turmas.map((t) => listarAlunosDaTurma(t.id).catch(() => [])),
+            );
+            const aluno = porTurma.flat().map(normalizeAluno).find((a) => a.id === savedNav.alunoId);
+            if (aluno) setSelectedAluno(aluno);
+            else setScreen('simulado-painel');
+          }
+        }
       }
     });
   }, [savedNav]);
@@ -88,7 +102,8 @@ export default function App() {
   const isRestoringSelection =
     (screen === 'admin-gestao' && !selectedProfessor) ||
     (screen === 'turma-detalhes' && !selectedTurma) ||
-    (SIMULADO_SCREENS.includes(screen) && !selectedSimulado);
+    (SIMULADO_SCREENS.includes(screen) && !selectedSimulado) ||
+    (screen === 'escaneamento' && !selectedAluno);
 
   useEffect(() => {
     if (isRestoringSelection) return;
@@ -97,8 +112,9 @@ export default function App() {
       professorId: selectedProfessor?.id ?? null,
       turmaId: selectedTurma?.id ?? null,
       simuladoId: selectedSimulado?.id ?? null,
+      alunoId: selectedAluno?.id ?? null,
     });
-  }, [screen, selectedProfessor, selectedTurma, selectedSimulado, isRestoringSelection]);
+  }, [screen, selectedProfessor, selectedTurma, selectedSimulado, selectedAluno, isRestoringSelection]);
 
   const go = (s, payload = null) => {
     setSelectedProfessor(s === 'admin-gestao' ? payload : null);
@@ -107,6 +123,7 @@ export default function App() {
     // No escaneamento o payload é o aluno, não o simulado.
     if (!SIMULADO_SCREENS.includes(s)) setSelectedSimulado(null);
     else if (payload && s !== 'escaneamento') setSelectedSimulado(payload);
+    setSelectedAluno(s === 'escaneamento' ? payload : null);
     setScreen(s);
   };
 
@@ -138,7 +155,7 @@ export default function App() {
     case 'simulado-painel':
       return <SimuladoPainelScreen go={go} simulado={selectedSimulado} />;
     case 'escaneamento':
-      return <EscaneamentoScreen go={go} simulado={selectedSimulado} />;
+      return <EscaneamentoScreen go={go} simulado={selectedSimulado} aluno={selectedAluno} />;
     case 'simulado-gabarito':
       return <GabaritoScreen go={go} simulado={selectedSimulado} />;
     case 'prof-perfil':
