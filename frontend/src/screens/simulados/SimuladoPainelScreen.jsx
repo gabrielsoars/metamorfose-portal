@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Search, Edit2, Camera, Check, Clock } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
+import { listarAlunosDoSimulado, normalizeAlunoSimulado } from '../../services/simuladosService.js';
 import { MobileShell } from '../../components/ui.jsx';
 
 export function SimuladoPainelScreen({ go, simulado }) {
@@ -12,10 +12,10 @@ export function SimuladoPainelScreen({ go, simulado }) {
     if (!simulado) return undefined;
     let isMounted = true;
 
-    // Nada é salvo por aluno, então todos aparecem como não corrigidos.
-    Promise.all(simulado.turmas.map((t) => listarAlunosDaTurma(t.id)))
-      .then((porTurma) => {
-        if (isMounted) setAlunos(porTurma.flat().map(normalizeAluno).map((a) => ({ ...a, corrected: false })));
+    // Status e nota por aluno vêm do backend (GET /simulados/{id}/alunos).
+    listarAlunosDoSimulado(simulado.id)
+      .then((resposta) => {
+        if (isMounted) setAlunos((resposta.alunos || []).map(normalizeAlunoSimulado));
       })
       .catch((error) => {
         if (isMounted) window.alert(error.message || 'Não foi possível carregar os alunos.');
@@ -94,7 +94,7 @@ export function SimuladoPainelScreen({ go, simulado }) {
                 </div>
               </div>
               {aluno.corrected ? (
-                <button type="button" className="w-9 h-9 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-500 hover:text-orange-500 hover:border-orange-300 transition-all">
+                <button type="button" onClick={() => go('escaneamento', aluno)} aria-label={`Editar correção de ${aluno.name}`} className="w-9 h-9 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-500 hover:text-orange-500 hover:border-orange-300 transition-all">
                   <Edit2 size={16} />
                 </button>
               ) : (

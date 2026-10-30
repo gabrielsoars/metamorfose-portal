@@ -7,6 +7,7 @@ import { listarAlunosDaTurma, normalizeAluno } from './services/alunosService.js
 import { LoginScreen, AtivacaoScreen } from './screens/auth/index.js';
 import { AdminHomeScreen, AdminGestaoScreen, AdminCadastroScreen } from './screens/admin/index.js';
 import { ProfDashboardScreen, TurmasScreen, TurmaDetalhesScreen, TurmaCadastroScreen, ProfPerfilScreen } from './screens/professor/index.js';
+import { QuestoesErroScreen } from './screens/professor/QuestoesErroScreen.jsx';
 import { SimuladosListaScreen, SimuladoCriarScreen, SimuladoPainelScreen, EscaneamentoScreen, GabaritoScreen } from './screens/simulados/index.js';
 export { normalizeUsuario } from './services/usuariosService.js';
 export { normalizeTurma } from './services/turmasService.js';
@@ -44,6 +45,8 @@ export default function App() {
   const [selectedTurma, setSelectedTurma] = useState(null);
   const [selectedSimulado, setSelectedSimulado] = useState(null);
   const [selectedAluno, setSelectedAluno] = useState(null);
+  // Filtro (turma e simulado) do dashboard e da tela de questões com maior erro; a própria tela valida os ids.
+  const [selectedFiltro, setSelectedFiltro] = useState(savedNav.filtro ?? null);
 
   const loadData = async () => {
     try {
@@ -113,8 +116,9 @@ export default function App() {
       turmaId: selectedTurma?.id ?? null,
       simuladoId: selectedSimulado?.id ?? null,
       alunoId: selectedAluno?.id ?? null,
+      filtro: selectedFiltro,
     });
-  }, [screen, selectedProfessor, selectedTurma, selectedSimulado, selectedAluno, isRestoringSelection]);
+  }, [screen, selectedProfessor, selectedTurma, selectedSimulado, selectedAluno, selectedFiltro, isRestoringSelection]);
 
   const go = (s, payload = null) => {
     setSelectedProfessor(s === 'admin-gestao' ? payload : null);
@@ -124,6 +128,7 @@ export default function App() {
     if (!SIMULADO_SCREENS.includes(s)) setSelectedSimulado(null);
     else if (payload && s !== 'escaneamento') setSelectedSimulado(payload);
     setSelectedAluno(s === 'escaneamento' ? payload : null);
+    setSelectedFiltro(s === 'questoes-erro' || s === 'prof-dashboard' ? payload : null);
     setScreen(s);
   };
 
@@ -141,7 +146,9 @@ export default function App() {
     case 'admin-cadastro':
       return <AdminCadastroScreen go={go} onRefresh={loadData} />;
     case 'prof-dashboard':
-      return <ProfDashboardScreen go={go} turmas={turmas} />;
+      return <ProfDashboardScreen go={go} filtro={selectedFiltro} />;
+    case 'questoes-erro':
+      return <QuestoesErroScreen go={go} filtro={selectedFiltro} />;
     case 'prof-turmas':
       return <TurmasScreen go={go} turmas={turmas} onRefresh={loadData} />;
     case 'turma-detalhes':
