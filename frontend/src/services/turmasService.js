@@ -24,3 +24,10 @@ export function criarTurma(turma) {
     body: JSON.stringify(turma),
   });
 }
+
+export function atualizarTurma(id, turma) {
+  return requestJson(`/turmas/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(turma),
+  });
+}
