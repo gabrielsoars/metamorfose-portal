@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, FileText, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, User, LogOut, Camera, CheckCircle2, BarChart3 } from 'lucide-react';
 import { C } from '../data/constants.js';
 
 const FONT = { fontFamily: "'Inter', sans-serif" };
@@ -80,6 +80,48 @@ function Sidebar({ active, onNav, onSair }) {
   );
 }
 
+const DESTAQUES = [
+  { icon: Camera, texto: 'Fotografe o cartão-resposta e o sistema lê as marcações' },
+  { icon: CheckCircle2, texto: 'Nota e erros de cada aluno na hora, com gabarito oficial' },
+  { icon: BarChart3, texto: 'Veja quais questões a turma mais errou' },
+];
+
+// Desktop (≥ 1024 px): metade da tela de login/ativação com a identidade do produto.
+function PainelMarca() {
+  return (
+    <aside
+      className="hidden lg:flex lg:w-[45%] xl:w-1/2 relative overflow-hidden flex-col justify-between gap-8 px-12 py-10 xl:px-16 xl:py-14 text-white"
+      style={{ background: C.orange }}
+    >
+      <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-20" style={{ background: C.yellow }} aria-hidden="true" />
+      <div className="absolute -bottom-40 -left-24 w-[28rem] h-[28rem] rounded-full opacity-10 bg-white" aria-hidden="true" />
+
+      <div className="relative">
+        <Logo size={64} />
+      </div>
+
+      <div className="relative max-w-xl">
+        <h2 className="text-4xl xl:text-5xl font-bold leading-tight mb-4">Correção de simulados sem planilha.</h2>
+        <p className="text-lg xl:text-xl text-white/90 font-medium mb-10">
+          Cadastre as turmas, monte o gabarito oficial e acompanhe o desempenho de cada aluno.
+        </p>
+        <ul className="space-y-5">
+          {DESTAQUES.map(({ icon: Icon, texto }) => (
+            <li key={texto} className="flex items-center gap-4 text-base xl:text-lg font-medium">
+              <span className="w-11 h-11 shrink-0 rounded-xl bg-white/15 flex items-center justify-center">
+                <Icon size={22} />
+              </span>
+              {texto}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div aria-hidden="true" />
+    </aside>
+  );
+}
+
 // Celular e tablet (< 1024 px): menu inferior, como sempre foi.
 function BottomNav({ active, onNav }) {
   return (
@@ -113,7 +155,7 @@ function BottomNav({ active, onNav }) {
  * Sempre `h-dvh`: cabeçalho e rodapé ficam fixos e o miolo de cada tela rola por dentro.
  *
  * variant:
- * - 'auth': cartão centralizado (login, ativação), sem menu.
+ * - 'auth': cartão centralizado (login, ativação), sem menu; no desktop, tela dividida com painel de marca.
  * - 'admin': coluna inteira, sem menu; o cabeçalho da tela faz o papel de barra superior.
  * - 'professor': barra lateral no desktop; menu inferior no celular/tablet se `mobileNav`.
  *
@@ -122,10 +164,13 @@ function BottomNav({ active, onNav }) {
 export function AppShell({ variant = 'professor', go, active = null, onNav, mobileNav = true, children }) {
   if (variant === 'auth') {
     return (
-      <div className="h-dvh overflow-y-auto bg-gray-50 md:bg-gray-200" style={FONT}>
-        <div className="min-h-full flex flex-col md:items-center md:justify-center md:p-8">
-          <div className="relative w-full flex-1 flex flex-col bg-gray-50 md:flex-none md:max-w-md lg:max-w-[420px] md:bg-white md:rounded-2xl md:shadow-xl">
-            {children}
+      <div className="h-dvh lg:flex overflow-hidden bg-gray-50 md:bg-gray-200 lg:bg-white" style={FONT}>
+        <PainelMarca />
+        <div className="h-full lg:flex-1 lg:min-w-0 overflow-y-auto">
+          <div className="min-h-full flex flex-col md:items-center md:justify-center md:p-8 lg:px-12 lg:py-8">
+            <div className="relative w-full flex-1 flex flex-col bg-gray-50 md:flex-none md:max-w-md md:bg-white md:rounded-2xl md:shadow-xl lg:max-w-[460px] xl:max-w-[520px] lg:bg-transparent lg:rounded-none lg:shadow-none">
+              {children}
+            </div>
           </div>
         </div>
       </div>
