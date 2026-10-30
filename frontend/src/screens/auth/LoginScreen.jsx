@@ -2,7 +2,7 @@ import { ArrowRight } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { MobileShell, OrangeBtn, Input } from '../../components/ui.jsx';
 
-export function LoginScreen({ go }) {
+export function LoginScreen({ go, notice = '' }) {
   return (
     <MobileShell>
       <main className="flex flex-col h-full p-6 sm:p-8">
@@ -21,12 +21,18 @@ export function LoginScreen({ go }) {
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Metamorfose</h1>
           <p className="text-gray-500 mb-8 font-medium">Plataforma de Correção de Simulados</p>
 
+          {notice && (
+            <p role="status" className="mb-5 text-sm font-medium rounded-xl border border-green-200 bg-green-50 text-green-800 px-4 py-3">
+              {notice}
+            </p>
+          )}
+
           <div className="space-y-5">
             <Input label="E-mail" type="email" placeholder="professor@unesp.br" />
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="block text-sm font-semibold text-gray-900">Senha</label>
-                <button type="button" className="text-sm font-bold transition-colors" style={{ color: C.orange }}>Esqueceu a senha?</button>
+                <button type="button" className="text-sm font-bold transition-colors" style={{ color: C.orange }} onClick={() => go('recuperar-senha')}>Esqueceu a senha?</button>
               </div>
               <input
                 type="password"

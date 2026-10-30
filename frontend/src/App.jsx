@@ -4,7 +4,7 @@ import { listarUsuarios, normalizeUsuario } from './services/usuariosService.js'
 import { listarTurmas, normalizeTurma } from './services/turmasService.js';
 import { obterSimulado } from './services/simuladosService.js';
 import { listarAlunosDaTurma, normalizeAluno } from './services/alunosService.js';
-import { LoginScreen, AtivacaoScreen } from './screens/auth/index.js';
+import { LoginScreen, AtivacaoScreen, RecuperarSenhaScreen, RedefinirSenhaScreen } from './screens/auth/index.js';
 import { AdminHomeScreen, AdminGestaoScreen, AdminCadastroScreen } from './screens/admin/index.js';
 import { ProfDashboardScreen, TurmasScreen, TurmaDetalhesScreen, TurmaCadastroScreen, ProfPerfilScreen } from './screens/professor/index.js';
 import { SimuladosListaScreen, SimuladoCriarScreen, SimuladoPainelScreen, EscaneamentoScreen, GabaritoScreen } from './screens/simulados/index.js';
@@ -17,6 +17,9 @@ const NAV_STORAGE_KEY = 'metamorfose:nav';
 
 // Telas que trabalham sobre um simulado selecionado.
 const SIMULADO_SCREENS = ['simulado-painel', 'simulado-gabarito', 'escaneamento'];
+
+// Telas de auth que usam o e-mail digitado (restaurado após o F5).
+const AUTH_EMAIL_SCREENS = ['ativacao', 'recuperar-senha', 'redefinir-senha'];
 
 function readSavedNav() {
   try {
@@ -44,6 +47,10 @@ export default function App() {
   const [selectedTurma, setSelectedTurma] = useState(null);
   const [selectedSimulado, setSelectedSimulado] = useState(null);
   const [selectedAluno, setSelectedAluno] = useState(null);
+  const [authEmail, setAuthEmail] = useState(
+    AUTH_EMAIL_SCREENS.includes(savedNav.screen) && typeof savedNav.email === 'string' ? savedNav.email : '',
+  );
+  const [loginNotice, setLoginNotice] = useState('');
 
   const loadData = async () => {
     try {
@@ -113,8 +120,9 @@ export default function App() {
       turmaId: selectedTurma?.id ?? null,
       simuladoId: selectedSimulado?.id ?? null,
       alunoId: selectedAluno?.id ?? null,
+      email: AUTH_EMAIL_SCREENS.includes(screen) ? authEmail : null,
     });
-  }, [screen, selectedProfessor, selectedTurma, selectedSimulado, selectedAluno, isRestoringSelection]);
+  }, [screen, selectedProfessor, selectedTurma, selectedSimulado, selectedAluno, authEmail, isRestoringSelection]);
 
   const go = (s, payload = null) => {
     setSelectedProfessor(s === 'admin-gestao' ? payload : null);
@@ -124,6 +132,8 @@ export default function App() {
     if (!SIMULADO_SCREENS.includes(s)) setSelectedSimulado(null);
     else if (payload && s !== 'escaneamento') setSelectedSimulado(payload);
     setSelectedAluno(s === 'escaneamento' ? payload : null);
+    // No login o payload é o aviso a exibir (ex.: senha redefinida).
+    setLoginNotice(s === 'login' && typeof payload === 'string' ? payload : '');
     setScreen(s);
   };
 
@@ -131,9 +141,13 @@ export default function App() {
 
   switch (screen) {
     case 'login':
-      return <LoginScreen go={go} />;
+      return <LoginScreen go={go} notice={loginNotice} />;
     case 'ativacao':
-      return <AtivacaoScreen go={go} />;
+      return <AtivacaoScreen go={go} email={authEmail} onEmailChange={setAuthEmail} />;
+    case 'recuperar-senha':
+      return <RecuperarSenhaScreen go={go} email={authEmail} onEmailChange={setAuthEmail} />;
+    case 'redefinir-senha':
+      return <RedefinirSenhaScreen go={go} email={authEmail} onEmailChange={setAuthEmail} />;
     case 'admin-home':
       return <AdminHomeScreen go={go} professors={usuarios} onRefresh={loadData} />;
     case 'admin-gestao':

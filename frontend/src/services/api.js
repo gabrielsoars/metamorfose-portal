@@ -25,7 +25,9 @@ export async function requestJson(path, options = {}) {
     } catch (error) {
       detail = detail;
     }
-    throw new Error(detail);
+    const error = new Error(detail);
+    error.status = response.status;
+    throw error;
   }
 
   if (response.status === 204) {
