@@ -6,8 +6,8 @@ import { AppShell } from '../../components/AppShell.jsx';
 export function LoginScreen({ go }) {
   return (
     <AppShell variant="auth">
-      <main className="flex flex-col h-full p-6 sm:p-8">
-        <div className="flex-1 flex flex-col justify-center mt-12 sm:mt-0">
+      <main className="flex-1 flex flex-col p-6 md:p-8">
+        <div className="flex-1 flex flex-col justify-center mt-12 md:mt-0">
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-sm border-2 border-black"
             style={{ background: C.yellow }}
