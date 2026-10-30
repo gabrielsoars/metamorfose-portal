@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { X, Check, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Check, AlertTriangle } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { obterGabarito } from '../../services/simuladosService.js';
 import { processarGabarito } from '../../services/scanService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { ImagePicker } from '../../components/ImagePicker.jsx';
 
 const AVISO_STATUS = {
   sem_resposta: 'Atenção: Em branco ou rasura',
@@ -19,7 +20,6 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
   const [scanTotal, setScanTotal] = useState(null);
   // Gabarito oficial: null enquanto carrega, depois a lista de { num_questao, alt_correta, anulada }.
   const [gabarito, setGabarito] = useState(null);
-  const fileInput = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -49,11 +49,9 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
     ? gabarito.filter((g) => g.anulada || answers[g.num_questao] === g.alt_correta).length
     : 0;
 
-  const handleFile = async (event) => {
-    const arquivo = event.target.files?.[0];
-    event.target.value = '';
-    if (!arquivo) return;
-
+  // O ImagePicker já validou e reduziu o arquivo; aqui só envia ao scan.
+  // Se o scan falhar, o erro sobe e o ImagePicker mostra o alerta.
+  const handleFile = async (arquivo) => {
     setProcessing(true);
     try {
       const resultado = await processarGabarito(arquivo, total);
@@ -68,8 +66,6 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
       setStatuses(status);
       setScanTotal(resultado.total_questoes);
       setPreview(URL.createObjectURL(arquivo));
-    } catch (error) {
-      window.alert(error.message || 'Não foi possível processar a imagem.');
     } finally {
       setProcessing(false);
     }
@@ -96,22 +92,7 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
         <div className="w-10 h-10" />
       </header>
 
-      <div className="bg-gray-900 w-full h-48 relative flex items-center justify-center overflow-hidden shrink-0">
-        {preview ? (
-          <img src={preview} alt="Gabarito enviado" className="h-full w-full object-contain" />
-        ) : (
-          <p className="text-xs font-semibold text-white/60">Nenhuma foto enviada</p>
-        )}
-        <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-        <button
-          type="button"
-          onClick={() => fileInput.current?.click()}
-          disabled={processing}
-          className="absolute bottom-3 right-3 bg-white/20 backdrop-blur-md border border-white/30 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-white/30 transition-colors"
-        >
-          <RefreshCw size={14} /> {processing ? 'Processando...' : preview ? 'Refazer Foto' : 'Enviar foto'}
-        </button>
-      </div>
+      <ImagePicker onSelect={handleFile} previewUrl={preview} processing={processing} />
 
       <div className="bg-yellow-50 px-6 py-2.5 border-b border-yellow-100 flex items-center gap-2 shrink-0">
         <AlertTriangle size={16} className="text-yellow-600" />
