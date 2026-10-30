@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Check, AlertTriangle, RefreshCw } from 'lucide-react';
 import { C } from '../../data/constants.js';
+import { obterGabarito } from '../../services/simuladosService.js';
 import { processarGabarito } from '../../services/scanService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
 
@@ -16,7 +17,25 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
   const [preview, setPreview] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [scanTotal, setScanTotal] = useState(null);
+  // Gabarito oficial: null enquanto carrega, depois a lista de { num_questao, alt_correta, anulada }.
+  const [gabarito, setGabarito] = useState(null);
   const fileInput = useRef(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    obterGabarito(simulado.id)
+      .then((itens) => {
+        if (isMounted) setGabarito(Array.isArray(itens) ? itens : []);
+      })
+      .catch((error) => {
+        if (isMounted) window.alert(error.message || 'Não foi possível carregar o gabarito oficial.');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [simulado.id]);
 
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
@@ -24,7 +43,11 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
 
   const total = simulado.total_questoes;
   const numeros = Array.from({ length: total }, (_, i) => i + 1);
-  const score = 35;
+  // Só conta questão que tem gabarito oficial. Questão anulada vale acerto para todos, como no backend.
+  const totalGabarito = gabarito ? gabarito.length : 0;
+  const acertos = gabarito
+    ? gabarito.filter((g) => g.anulada || answers[g.num_questao] === g.alt_correta).length
+    : 0;
 
   const handleFile = async (event) => {
     const arquivo = event.target.files?.[0];
@@ -138,10 +161,16 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
       <div className="absolute bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-30">
         <div className="flex items-center justify-between mb-3 px-1">
           <p className="text-xs font-bold text-gray-500">Nota Calculada:</p>
-          <p className="text-lg font-black text-emerald-600">{score} / 40 <span className="text-xs font-bold text-emerald-600/70 ml-1">acertos</span></p>
+          {gabarito === null ? (
+            <p className="text-lg font-black text-gray-300">—</p>
+          ) : totalGabarito === 0 ? (
+            <p className="text-xs font-bold text-orange-500">Cadastre o gabarito oficial</p>
+          ) : (
+            <p className="text-lg font-black text-emerald-600">{acertos} / {totalGabarito} <span className="text-xs font-bold text-emerald-600/70 ml-1">acertos</span></p>
+          )}
         </div>
-        <OrangeBtn onClick={() => go('simulado-gabarito')}>
-          Confirmar e Salvar <Check size={20} />
+        <OrangeBtn onClick={() => go('simulado-painel')}>
+          Concluir <Check size={20} />
         </OrangeBtn>
       </div>
     </MobileShell>
