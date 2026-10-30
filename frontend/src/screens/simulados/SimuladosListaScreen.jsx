@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Search, ChevronRight, FileText, SlidersHorizontal, Calendar } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { listarSimulados } from '../../services/simuladosService.js';
-import { MobileShell, BottomNav } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 
 // A API devolve "YYYY-MM-DD". new Date() interpretaria como UTC e mostraria um dia antes no Brasil.
 const formatarData = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
@@ -34,7 +34,11 @@ export function SimuladosListaScreen({ go }) {
   const filtered = simulados.filter((s) => (s.titulo || '').toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <MobileShell>
+    <AppShell go={go} active="simulados" onNav={(tab) => {
+      if (tab === 'dashboard') go('prof-dashboard');
+      else if (tab === 'turmas') go('prof-turmas');
+      else if (tab === 'perfil') go('prof-perfil');
+    }}>
       <header className="bg-white px-6 pt-12 pb-4 shadow-sm z-20 flex justify-between items-center">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Gestão de Provas</p>
@@ -104,17 +108,11 @@ export function SimuladosListaScreen({ go }) {
       <button
         type="button"
         onClick={() => go('simulado-criar')}
-        className="absolute bottom-24 right-6 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
+        className="absolute bottom-6 right-6 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
         style={{ background: C.orange }}
       >
         <Plus size={28} />
       </button>
-
-      <BottomNav active="simulados" onNav={(tab) => {
-        if (tab === 'dashboard') go('prof-dashboard');
-        else if (tab === 'turmas') go('prof-turmas');
-        else if (tab === 'perfil') go('prof-perfil');
-      }} />
-    </MobileShell>
+    </AppShell>
   );
 }

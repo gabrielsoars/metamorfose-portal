@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Check, X, Ban, Clock, Camera } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { obterCorrecaoAluno } from '../../services/simuladosService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 
 export function BoletimScreen({ go, simulado, aluno }) {
   // undefined = carregando; depois o retorno de GET /simulados/{id}/alunos/{aluno_id}.
@@ -35,7 +36,7 @@ export function BoletimScreen({ go, simulado, aluno }) {
   const pct = total ? Math.round((correcao.acertos / total) * 100) : 0;
 
   return (
-    <MobileShell>
+    <AppShell go={go} active="simulados" mobileNav={false}>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
         <button type="button" onClick={() => go('simulado-painel')} aria-label="Voltar ao painel" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
@@ -120,6 +121,6 @@ export function BoletimScreen({ go, simulado, aluno }) {
           </div>
         </>
       )}
-    </MobileShell>
+    </AppShell>
   );
 }

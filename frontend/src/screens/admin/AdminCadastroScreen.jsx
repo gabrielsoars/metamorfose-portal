@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { criarUsuario } from '../../services/usuariosService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 
 export function AdminCadastroScreen({ go, onRefresh }) {
   const [nome, setNome] = useState('');
@@ -31,7 +32,7 @@ export function AdminCadastroScreen({ go, onRefresh }) {
   }
 
   return (
-    <MobileShell>
+    <AppShell variant="admin">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-30" onClick={() => go('admin-home')} />
 
       <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-[2rem] z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.12)]" style={{ animation: 'slideUp 0.3s ease-out' }}>
@@ -88,6 +89,6 @@ export function AdminCadastroScreen({ go, onRefresh }) {
           </div>
         </div>
       </div>
-    </MobileShell>
+    </AppShell>
   );
 }

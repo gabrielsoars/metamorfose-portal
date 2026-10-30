@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { ArrowLeft, Info, ChevronDown } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { atualizarTurma, criarTurma, normalizeTurma } from '../../services/turmasService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 
 const inputClass = 'w-full px-4 py-3 bg-white rounded-xl border border-gray-200 outline-none text-gray-800 font-medium';
 const onFocus = (e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; };
@@ -43,7 +44,7 @@ export function TurmaCadastroScreen({ go, turma, onRefresh }) {
   }
 
   return (
-    <MobileShell>
+    <AppShell go={go} active="turmas" mobileNav={false}>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
         <button type="button" onClick={() => (editando ? go('turma-detalhes', turma) : go('prof-turmas'))} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
@@ -111,6 +112,6 @@ export function TurmaCadastroScreen({ go, turma, onRefresh }) {
 
         <OrangeBtn onClick={handleSave}>{saving ? 'Salvando...' : editando ? 'Salvar Alterações' : 'Salvar Turma'}</OrangeBtn>
       </div>
-    </MobileShell>
+    </AppShell>
   );
 }

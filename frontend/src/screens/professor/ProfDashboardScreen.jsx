@@ -1,6 +1,6 @@
 import { LogOut, Bell, TrendingUp } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { MobileShell, BottomNav } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 import { useQuestoesErro, FiltrosQuestoes, QuestoesErroLista } from './QuestoesErroScreen.jsx';
 
 export function ProfDashboardScreen({ go, filtro }) {
@@ -14,7 +14,11 @@ export function ProfDashboardScreen({ go, filtro }) {
   ];
 
   return (
-    <MobileShell>
+    <AppShell go={go} active="dashboard" onNav={(tab) => {
+      if (tab === 'turmas') go('prof-turmas');
+      else if (tab === 'simulados') go('simulados-lista');
+      else if (tab === 'perfil') go('prof-perfil');
+    }}>
       <header className="bg-white px-6 pt-12 pb-4 shadow-sm z-20 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-black font-bold text-sm" style={{ background: C.yellow }}>
@@ -87,12 +91,6 @@ export function ProfDashboardScreen({ go, filtro }) {
           </div>
         </div>
       </div>
-
-      <BottomNav active="dashboard" onNav={(tab) => {
-        if (tab === 'turmas') go('prof-turmas');
-        else if (tab === 'simulados') go('simulados-lista');
-        else if (tab === 'perfil') go('prof-perfil');
-      }} />
-    </MobileShell>
+    </AppShell>
   );
 }

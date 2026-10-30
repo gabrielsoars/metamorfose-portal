@@ -3,7 +3,8 @@ import { X, Check, AlertTriangle } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { obterGabarito, obterCorrecaoAluno, respostasSalvas, montarRespostas, salvarRespostasAluno } from '../../services/simuladosService.js';
 import { processarGabarito } from '../../services/scanService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 import { ImagePicker } from '../../components/ImagePicker.jsx';
 
 const AVISO_STATUS = {
@@ -122,7 +123,7 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
         : 'Revise as alternativas lidas pelo sistema.';
 
   return (
-    <MobileShell>
+    <AppShell go={go} active="simulados" mobileNav={false}>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
         <button type="button" onClick={() => go('simulado-painel')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
           <X size={24} />
@@ -196,6 +197,6 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
           {saving ? 'Salvando...' : 'Concluir'} <Check size={20} />
         </OrangeBtn>
       </div>
-    </MobileShell>
+    </AppShell>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Search, Edit2, Camera, Check, Clock, Trash2, Trophy } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { excluirSimulado, listarAlunosDoSimulado, normalizeAlunoSimulado, montarRanking } from '../../services/simuladosService.js';
-import { MobileShell } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx';
 
 // Ações do menu ⋮ do cabeçalho. Para incluir outra, basta acrescentar um item aqui.
@@ -58,7 +58,7 @@ export function SimuladoPainelScreen({ go, simulado }) {
   const { ranking, media } = montarRanking(alunos);
 
   return (
-    <MobileShell>
+    <AppShell go={go} active="simulados" mobileNav={false}>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
         <button type="button" onClick={() => go('prof-dashboard')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
@@ -199,6 +199,6 @@ export function SimuladoPainelScreen({ go, simulado }) {
           onCancel={() => setConfirmDelete(false)}
         />
       )}
-    </MobileShell>
+    </AppShell>
   );
 }

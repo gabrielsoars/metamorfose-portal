@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Search, LogOut, Users, ChevronRight, ChevronDown } from 'lucide-react';
 import { C, FALLBACK_PROFESSORS } from '../../data/constants.js';
-import { MobileShell } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 
 export function AdminHomeScreen({ go, professors }) {
   const [search, setSearch] = useState('');
@@ -16,7 +16,7 @@ export function AdminHomeScreen({ go, professors }) {
   });
 
   return (
-    <MobileShell>
+    <AppShell variant="admin">
       <header className="bg-white px-6 pt-12 pb-4 shadow-sm z-10 flex justify-between items-center">
         <div>
           <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: C.orange }}>Painel Admin</p>
@@ -122,6 +122,6 @@ export function AdminHomeScreen({ go, professors }) {
       >
         <Plus size={28} />
       </button>
-    </MobileShell>
+    </AppShell>
   );
 }

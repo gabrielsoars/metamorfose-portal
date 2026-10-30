@@ -1,10 +1,11 @@
 import { ArrowRight } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { MobileShell, OrangeBtn, Input } from '../../components/ui.jsx';
+import { OrangeBtn, Input } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 
 export function LoginScreen({ go }) {
   return (
-    <MobileShell>
+    <AppShell variant="auth">
       <main className="flex flex-col h-full p-6 sm:p-8">
         <div className="flex-1 flex flex-col justify-center mt-12 sm:mt-0">
           <div
@@ -62,6 +63,6 @@ export function LoginScreen({ go }) {
           </p>
         </div>
       </main>
-    </MobileShell>
+    </AppShell>
   );
 }

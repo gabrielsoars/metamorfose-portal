@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { X, Info, Check } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { obterGabarito, salvarGabarito } from '../../services/simuladosService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 
 export function GabaritoScreen({ go, simulado }) {
   // Respostas marcadas, indexadas pelo número da questão: { 1: 'A', 2: 'C' }
@@ -37,12 +38,12 @@ export function GabaritoScreen({ go, simulado }) {
 
   if (!simulado) {
     return (
-      <MobileShell>
+      <AppShell go={go} active="simulados" mobileNav={false}>
         <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4 text-center">
           <p className="text-sm font-medium text-gray-500">Nenhum simulado selecionado.</p>
           <OrangeBtn onClick={() => go('simulados-lista')}>Voltar para os simulados</OrangeBtn>
         </div>
-      </MobileShell>
+      </AppShell>
     );
   }
 
@@ -68,7 +69,7 @@ export function GabaritoScreen({ go, simulado }) {
   };
 
   return (
-    <MobileShell>
+    <AppShell go={go} active="simulados" mobileNav={false}>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
         <button type="button" onClick={() => go('simulado-painel')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <X size={24} />
@@ -127,6 +128,6 @@ export function GabaritoScreen({ go, simulado }) {
           {saving ? 'Salvando...' : 'Salvar Gabarito Oficial'} <Check size={20} />
         </OrangeBtn>
       </div>
-    </MobileShell>
+    </AppShell>
   );
 }

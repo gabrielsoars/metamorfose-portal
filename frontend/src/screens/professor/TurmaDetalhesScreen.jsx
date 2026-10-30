@@ -3,7 +3,8 @@ import { ArrowLeft, X, Search, Edit2, UserPlus, Trash2, Save } from 'lucide-reac
 import { C, FALLBACK_ALUNOS } from '../../data/constants.js';
 import { atualizarAluno, criarAluno, excluirAluno, listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
 import { excluirTurma } from '../../services/turmasService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx';
 
 export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
@@ -113,7 +114,7 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
   ];
 
   return (
-    <MobileShell>
+    <AppShell go={go} active="turmas" mobileNav={false}>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
         <button type="button" onClick={() => go('prof-turmas')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
@@ -265,6 +266,6 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
           </div>
         </>
       )}
-    </MobileShell>
+    </AppShell>
   );
 }

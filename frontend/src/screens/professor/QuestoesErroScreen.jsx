@@ -3,7 +3,7 @@ import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { listarSimulados, carregarQuestoesComErro } from '../../services/simuladosService.js';
 import { listarTurmas } from '../../services/turmasService.js';
-import { MobileShell, BottomNav } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 
 // Simulados que têm a turma (todos, se nenhuma turma estiver escolhida), do mais recente para o mais antigo.
 const simuladosDaTurma = (simulados, turmaId) =>
@@ -167,7 +167,12 @@ export function QuestoesErroScreen({ go, filtro }) {
   const q = useQuestoesErro(filtro, (novo) => go('questoes-erro', novo));
 
   return (
-    <MobileShell>
+    <AppShell go={go} active="dashboard" onNav={(tab) => {
+      if (tab === 'dashboard') go('prof-dashboard', q.filtro);
+      else if (tab === 'turmas') go('prof-turmas');
+      else if (tab === 'simulados') go('simulados-lista');
+      else if (tab === 'perfil') go('prof-perfil');
+    }}>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center border-b border-gray-100">
         <button type="button" onClick={() => go('prof-dashboard', q.filtro)} aria-label="Voltar" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
@@ -192,13 +197,6 @@ export function QuestoesErroScreen({ go, filtro }) {
           <QuestoesErroLista q={q} />
         </div>
       </div>
-
-      <BottomNav active="dashboard" onNav={(tab) => {
-        if (tab === 'dashboard') go('prof-dashboard', q.filtro);
-        else if (tab === 'turmas') go('prof-turmas');
-        else if (tab === 'simulados') go('simulados-lista');
-        else if (tab === 'perfil') go('prof-perfil');
-      }} />
-    </MobileShell>
+    </AppShell>
   );
 }
