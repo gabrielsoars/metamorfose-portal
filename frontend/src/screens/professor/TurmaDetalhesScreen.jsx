@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, X, Search, Edit2, UserPlus, Trash2, Save } from 'lucide-react';
 import { C, FALLBACK_ALUNOS } from '../../data/constants.js';
-import { atualizarAluno, criarAluno, listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
+import { atualizarAluno, criarAluno, excluirAluno, listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
+import { excluirTurma } from '../../services/turmasService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { ConfirmDialog } from '../../components/ConfirmDialog.jsx';
 
 export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
   const [search, setSearch] = useState('');
@@ -12,6 +14,9 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [newAluno, setNewAluno] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  // Exclusão pendente de confirmação: { tipo: 'turma' } ou { tipo: 'aluno', aluno }.
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!turma || !turma.id) return;
@@ -69,9 +74,42 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
     }
   }
 
-  // Itens do menu ⋮ do cabeçalho. Novas ações (ex.: excluir turma) entram aqui.
+  async function confirmDelete() {
+    if (!pendingDelete || !turma) return;
+    setDeleting(true);
+    try {
+      if (pendingDelete.tipo === 'turma') {
+        await excluirTurma(turma.id);
+        if (onRefresh) await onRefresh();
+        go('prof-turmas');
+        return;
+      }
+      await excluirAluno(pendingDelete.aluno.id);
+      setList((l) => l.filter((a) => a.id !== pendingDelete.aluno.id));
+      setPendingDelete(null);
+      if (onRefresh) await onRefresh();
+    } catch (error) {
+      setPendingDelete(null);
+      window.alert(error.message || (pendingDelete.tipo === 'turma' ? 'Não foi possível excluir a turma.' : 'Não foi possível excluir o aluno.'));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const confirmCopy = pendingDelete?.tipo === 'turma'
+    ? {
+      title: 'Excluir turma',
+      message: `Excluir a turma ${turma?.name}? Isso apaga ${list.length === 1 ? '1 aluno' : `${list.length} alunos`} e as respostas deles, e não pode ser desfeito.`,
+    }
+    : {
+      title: 'Excluir aluno',
+      message: `Excluir o aluno ${pendingDelete?.aluno?.name}? Isso apaga também as respostas dele em todos os simulados e não pode ser desfeito.`,
+    };
+
+  // Itens do menu ⋮ do cabeçalho. Novas ações entram aqui.
   const menuItems = [
     { key: 'editar', label: 'Editar turma', icon: Edit2, onClick: () => go('turma-editar', turma) },
+    { key: 'excluir', label: 'Excluir turma', icon: Trash2, danger: true, onClick: () => setPendingDelete({ tipo: 'turma' }) },
   ];
 
   return (
@@ -93,15 +131,15 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
         <>
           <div className="absolute inset-0 z-30" onClick={() => setMenuOpen(false)} />
           <div role="menu" className="absolute right-4 top-24 z-40 min-w-[11rem] bg-white rounded-xl border border-gray-100 shadow-lg py-1">
-            {menuItems.map(({ key, label, icon: Icon, onClick }) => (
+            {menuItems.map(({ key, label, icon: Icon, danger, onClick }) => (
               <button
                 key={key}
                 type="button"
                 role="menuitem"
                 onClick={() => { setMenuOpen(false); onClick(); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 text-left"
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-50 text-left ${danger ? 'text-red-600' : 'text-gray-800'}`}
               >
-                <Icon size={16} style={{ color: C.orange }} />
+                <Icon size={16} style={danger ? undefined : { color: C.orange }} />
                 {label}
               </button>
             ))}
@@ -158,7 +196,7 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
                 <button type="button" onClick={() => openEdit(aluno)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-orange-50 transition-colors" style={{ color: C.orange }}>
                   <Edit2 size={15} />
                 </button>
-                <button type="button" onClick={() => setList((l) => l.filter((a) => a.id !== aluno.id))} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50">
+                <button type="button" aria-label={`Excluir aluno ${aluno.name}`} onClick={() => setPendingDelete({ tipo: 'aluno', aluno })} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50">
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -166,6 +204,16 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
           ))}
         </div>
       </div>
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={confirmCopy.title}
+          message={confirmCopy.message}
+          busy={deleting}
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
 
       {editingAluno && (
         <>

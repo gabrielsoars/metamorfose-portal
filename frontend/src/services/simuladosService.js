@@ -22,6 +22,10 @@ export function atualizarSimulado(id, dados) {
   });
 }
 
+export function excluirSimulado(id) {
+  return requestJson(`/simulados/${id}`, { method: 'DELETE' });
+}
+
 export function obterGabarito(id) {
   return requestJson(`/simulados/${id}/gabarito`);
 }

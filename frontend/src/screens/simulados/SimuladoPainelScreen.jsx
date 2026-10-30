@@ -1,16 +1,21 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Search, Edit2, Camera, Check, Clock } from 'lucide-react';
+import { ArrowLeft, Search, Edit2, Camera, Check, Clock, Trash2 } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
+import { excluirSimulado } from '../../services/simuladosService.js';
 import { MobileShell } from '../../components/ui.jsx';
+import { ConfirmDialog } from '../../components/ConfirmDialog.jsx';
 
 // Ações do menu ⋮ do cabeçalho. Para incluir outra, basta acrescentar um item aqui.
 const MENU_ACOES = [
   { label: 'Editar simulado', icon: Edit2, screen: 'simulado-editar' },
+  { label: 'Excluir simulado', icon: Trash2, excluir: true },
 ];
 
 export function SimuladoPainelScreen({ go, simulado }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
   const [alunos, setAlunos] = useState([]);
 
@@ -31,6 +36,19 @@ export function SimuladoPainelScreen({ go, simulado }) {
       isMounted = false;
     };
   }, [simulado]);
+
+  async function handleExcluirSimulado() {
+    setDeleting(true);
+    try {
+      await excluirSimulado(simulado.id);
+      go('simulados-lista');
+    } catch (error) {
+      setConfirmDelete(false);
+      window.alert(error.message || 'Não foi possível excluir o simulado.');
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const filtered = alunos.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
   const corrected = alunos.filter((a) => a.corrected).length;
@@ -66,8 +84,8 @@ export function SimuladoPainelScreen({ go, simulado }) {
                     key={acao.label}
                     type="button"
                     role="menuitem"
-                    onClick={() => { setMenuOpen(false); go(acao.screen); }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 text-left"
+                    onClick={() => { setMenuOpen(false); if (acao.excluir) setConfirmDelete(true); else go(acao.screen); }}
+                    className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm font-semibold hover:bg-gray-50 text-left ${acao.excluir ? 'text-red-600' : 'text-gray-700'}`}
                   >
                     <acao.icon size={16} /> {acao.label}
                   </button>
@@ -146,6 +164,16 @@ export function SimuladoPainelScreen({ go, simulado }) {
           </div>
         ))}
       </div>
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Excluir simulado"
+          message={`Excluir o simulado ${simulado?.titulo}? Isso apaga o gabarito oficial e as correções dos alunos, e não pode ser desfeito.`}
+          busy={deleting}
+          onConfirm={handleExcluirSimulado}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </MobileShell>
   );
 }
