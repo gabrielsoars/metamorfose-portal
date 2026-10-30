@@ -2,15 +2,20 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import alunos, turmas, usuarios, simulados
+from .routers import alunos, auth, turmas, usuarios, simulados
 from .db.base import Base
-from .db.session import engine
+from .db.session import engine, SessionLocal
+from .core.config import get_settings
+from .services import usuario_service
 
 from .models import aluno, turma, usuario, simulado
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    settings = get_settings()
+    with SessionLocal() as db:
+        usuario_service.garantir_admin_inicial(db, settings.admin_email, settings.admin_nome)
     yield
 
 app = FastAPI(title="API do Sistema Acadêmico", lifespan=lifespan)
@@ -34,6 +39,7 @@ app.include_router(turmas.router)
 app.include_router(alunos.router)
 app.include_router(usuarios.router)
 app.include_router(simulados.router)
+app.include_router(auth.router)
 
 
 @app.get("/")
