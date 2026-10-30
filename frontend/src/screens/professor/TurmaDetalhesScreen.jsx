@@ -9,7 +9,7 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
   const [list, setList] = useState(FALLBACK_ALUNOS);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
-  const [editMatricula, setEditMatricula] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [newAluno, setNewAluno] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -40,7 +40,6 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
   function openEdit(aluno) {
     setEditingId(aluno.id);
     setEditName(aluno.name);
-    setEditMatricula(aluno.matricula);
   }
 
   async function saveEdit() {
@@ -48,7 +47,7 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
     try {
       await atualizarAluno(editingId, { nome: editName });
 
-      setList((l) => l.map((a) => a.id === editingId ? { ...a, name: editName, matricula: editMatricula || a.matricula, initial: editName.charAt(0).toUpperCase() } : a));
+      setList((l) => l.map((a) => a.id === editingId ? { ...a, name: editName, initial: editName.charAt(0).toUpperCase() } : a));
       setEditingId(null);
       if (onRefresh) await onRefresh();
     } catch (error) {
@@ -70,6 +69,11 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
     }
   }
 
+  // Itens do menu ⋮ do cabeçalho. Novas ações (ex.: excluir turma) entram aqui.
+  const menuItems = [
+    { key: 'editar', label: 'Editar turma', icon: Edit2, onClick: () => go('turma-editar', turma) },
+  ];
+
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
@@ -80,10 +84,30 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
           <h1 className="text-lg font-bold text-gray-900 leading-tight truncate">{turma?.name || 'Turma'}</h1>
           <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: C.orange }}>{list.length} Alunos Matriculados</p>
         </div>
-        <button type="button" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" aria-label="Mais opções" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
         </button>
       </header>
+
+      {menuOpen && (
+        <>
+          <div className="absolute inset-0 z-30" onClick={() => setMenuOpen(false)} />
+          <div role="menu" className="absolute right-4 top-24 z-40 min-w-[11rem] bg-white rounded-xl border border-gray-100 shadow-lg py-1">
+            {menuItems.map(({ key, label, icon: Icon, onClick }) => (
+              <button
+                key={key}
+                type="button"
+                role="menuitem"
+                onClick={() => { setMenuOpen(false); onClick(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 text-left"
+              >
+                <Icon size={16} style={{ color: C.orange }} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="flex-1 overflow-y-auto p-6 space-y-5 pb-8" style={{ scrollbarWidth: 'none' }}>
         <button
@@ -175,14 +199,15 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-1">Matrícula</label>
+                  {/* A API não guarda matrícula: o valor exibido é o id do aluno, então o campo é só leitura. */}
                   <input
                     type="text"
-                    value={editMatricula}
-                    onChange={(e) => setEditMatricula(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-gray-800 font-medium"
-                    onFocus={(e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; }}
-                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
+                    value={editingAluno.matricula}
+                    readOnly
+                    aria-readonly="true"
+                    className="w-full px-4 py-3 bg-gray-100 rounded-xl border border-gray-200 outline-none text-gray-500 font-medium cursor-not-allowed"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Gerada pelo sistema, não pode ser alterada.</p>
                 </div>
                 <OrangeBtn onClick={saveEdit}>
                   <Save size={18} /> Salvar Alterações
