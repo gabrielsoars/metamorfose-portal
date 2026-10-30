@@ -64,6 +64,13 @@ def atualizar_simulado(db: Session, simulado_id: int, simulado_in: SimuladoUpdat
 
     return simulado_repository.atualizar_simulado(db, simulado, dados_atualizacao, novas_turmas)
 
+def excluir_simulado(db: Session, simulado_id: int) -> None:
+    """Exclui o simulado com gabarito, respostas e vínculos com turmas (alunos e turmas permanecem)."""
+    simulado = simulado_repository.obter_simulado(db, simulado_id)
+    if simulado is None:
+        raise SimuladoNaoEncontrado(simulado_id)
+    simulado_repository.excluir_simulado(db, simulado)
+
 def obter_gabarito(db: Session, simulado_id: int) -> list[Gabarito]:
     simulado = simulado_repository.obter_simulado(db, simulado_id)
     if simulado is None:
