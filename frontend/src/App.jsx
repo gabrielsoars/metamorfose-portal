@@ -1,58 +1,71 @@
 import { useEffect, useState } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { FALLBACK_PROFESSORS, FALLBACK_TURMAS } from './data/constants.js';
 import { listarUsuarios, normalizeUsuario } from './services/usuariosService.js';
 import { listarTurmas, normalizeTurma } from './services/turmasService.js';
-import { obterSimulado } from './services/simuladosService.js';
-import { listarAlunosDaTurma, normalizeAluno } from './services/alunosService.js';
 import { LoginScreen, AtivacaoScreen } from './screens/auth/index.js';
 import { AdminHomeScreen, AdminGestaoScreen, AdminCadastroScreen } from './screens/admin/index.js';
 import { ProfDashboardScreen, TurmasScreen, TurmaDetalhesScreen, TurmaCadastroScreen, ProfPerfilScreen } from './screens/professor/index.js';
 import { QuestoesErroScreen } from './screens/professor/QuestoesErroScreen.jsx';
 import { SimuladosListaScreen, SimuladoCriarScreen, SimuladoEditarScreen, SimuladoPainelScreen, EscaneamentoScreen, GabaritoScreen, BoletimScreen } from './screens/simulados/index.js';
+import { rotas, filtroDaUrl } from './routes/rotas.js';
+import { CarregaTurma, CarregaProfessor, CarregaSimulado, CarregaAluno } from './routes/carregadores.jsx';
 export { normalizeUsuario } from './services/usuariosService.js';
 export { normalizeTurma } from './services/turmasService.js';
 export { normalizeAluno } from './services/alunosService.js';
 
-// Guarda a tela atual e os ids selecionados para que um refresh (F5) não volte ao login.
-const NAV_STORAGE_KEY = 'metamorfose:nav';
+// Etapa 1 do P-14: as telas ainda navegam com go(tela, payload); o adaptador traduz o nome
+// da tela para a URL. O id que faltar no payload vem da URL atual (ex.: go('simulado-painel')
+// a partir da correção usa o :simuladoId da rota). Na etapa 2 as telas passam a usar
+// navigate/<Link> direto e este adaptador sai.
+const URL_DA_TELA = {
+  login: () => rotas.login,
+  ativacao: () => rotas.ativacao,
+  'recuperar-senha': () => rotas.recuperarSenha,
+  'redefinir-senha': () => rotas.redefinirSenha,
+  'admin-home': () => rotas.admin,
+  'admin-cadastro': () => rotas.professorNovo,
+  'admin-gestao': ({ payload }) => rotas.professor(payload.id),
+  'prof-dashboard': ({ payload }) => rotas.painel(payload),
+  'questoes-erro': ({ payload }) => rotas.questoesErro(payload),
+  'prof-turmas': () => rotas.turmas,
+  'turma-cadastro': () => rotas.turmaNova,
+  'turma-detalhes': ({ payload, params }) => rotas.turma(payload?.id ?? params.turmaId),
+  'turma-editar': ({ payload, params }) => rotas.turmaEditar(payload?.id ?? params.turmaId),
+  'simulados-lista': () => rotas.simulados,
+  'simulado-criar': () => rotas.simuladoNovo,
+  'simulado-painel': ({ payload, params }) => rotas.simulado(payload?.id ?? params.simuladoId),
+  'simulado-editar': ({ payload, params }) => rotas.simuladoEditar(payload?.id ?? params.simuladoId),
+  'simulado-gabarito': ({ payload, params }) => rotas.simuladoGabarito(payload?.id ?? params.simuladoId),
+  // Nas telas de aluno o payload é o aluno; o simulado vem da URL.
+  escaneamento: ({ payload, params }) => rotas.correcao(params.simuladoId, payload?.id ?? params.alunoId),
+  'aluno-boletim': ({ payload, params }) => rotas.boletim(params.simuladoId, payload?.id ?? params.alunoId),
+  'prof-perfil': () => rotas.perfil,
+};
 
-// Telas que trabalham sobre um simulado selecionado.
-const SIMULADO_SCREENS = ['simulado-painel', 'simulado-editar', 'simulado-gabarito', 'escaneamento', 'aluno-boletim'];
-
-// Telas que trabalham sobre uma turma selecionada.
-const TURMA_SCREENS = ['turma-detalhes', 'turma-editar'];
-
-// Telas que trabalham sobre um aluno selecionado (o payload do go é o aluno, não o simulado).
-const ALUNO_SCREENS = ['escaneamento', 'aluno-boletim'];
-
-function readSavedNav() {
-  try {
-    return JSON.parse(sessionStorage.getItem(NAV_STORAGE_KEY)) || { screen: 'login' };
-  } catch {
-    return { screen: 'login' };
-  }
+function useGo() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams();
+  return (tela, payload = null) => {
+    const url = URL_DA_TELA[tela]({ payload, params });
+    // Mudar só o filtro da mesma tela não cria uma entrada nova no histórico.
+    navigate(url, { replace: url.split('?')[0] === location.pathname });
+  };
 }
 
-function saveNav(nav) {
-  try {
-    if (nav.screen === 'login') sessionStorage.removeItem(NAV_STORAGE_KEY);
-    else sessionStorage.setItem(NAV_STORAGE_KEY, JSON.stringify(nav));
-  } catch {
-    // Sem sessionStorage o app funciona normalmente, só não restaura a tela.
-  }
+function ComGo({ children }) {
+  return children(useGo());
+}
+
+function ComFiltro({ children }) {
+  const [searchParams] = useSearchParams();
+  return children(filtroDaUrl(searchParams));
 }
 
 export default function App() {
-  const [savedNav] = useState(readSavedNav);
-  const [screen, setScreen] = useState(savedNav.screen);
   const [usuarios, setUsuarios] = useState(FALLBACK_PROFESSORS);
   const [turmas, setTurmas] = useState(FALLBACK_TURMAS);
-  const [selectedProfessor, setSelectedProfessor] = useState(null);
-  const [selectedTurma, setSelectedTurma] = useState(null);
-  const [selectedSimulado, setSelectedSimulado] = useState(null);
-  const [selectedAluno, setSelectedAluno] = useState(null);
-  // Filtro (turma e simulado) do dashboard e da tela de questões com maior erro; a própria tela valida os ids.
-  const [selectedFiltro, setSelectedFiltro] = useState(savedNav.filtro ?? null);
 
   const loadData = async () => {
     try {
@@ -74,112 +87,81 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadData().then(async ({ usuarios: listaUsuarios, turmas: listaTurmas }) => {
-      // Após um refresh, recupera o item selecionado pelo id salvo. Se ele não existir mais, volta para a tela anterior.
-      if (savedNav.screen === 'admin-gestao') {
-        const professor = listaUsuarios.find((u) => u.id === savedNav.professorId);
-        if (professor) setSelectedProfessor(professor);
-        else setScreen('admin-home');
-      }
-      if (TURMA_SCREENS.includes(savedNav.screen)) {
-        const turma = listaTurmas.find((t) => t.id === savedNav.turmaId);
-        if (turma) setSelectedTurma(turma);
-        else setScreen('prof-turmas');
-      }
-      if (SIMULADO_SCREENS.includes(savedNav.screen)) {
-        const simulado = savedNav.simuladoId ? await obterSimulado(savedNav.simuladoId).catch(() => null) : null;
-        if (!simulado) {
-          setScreen('simulados-lista');
-        } else {
-          setSelectedSimulado(simulado);
-          if (ALUNO_SCREENS.includes(savedNav.screen)) {
-            // O aluno não tem endpoint próprio: procura nos alunos das turmas do simulado.
-            const porTurma = await Promise.all(
-              simulado.turmas.map((t) => listarAlunosDaTurma(t.id).catch(() => [])),
-            );
-            const aluno = porTurma.flat().map(normalizeAluno).find((a) => a.id === savedNav.alunoId);
-            if (aluno) setSelectedAluno(aluno);
-            else setScreen('simulado-painel');
-          }
+    loadData();
+  }, []);
+
+  // As telas de um registro têm `key` própria: ao trocar de tela o carregador é montado de novo
+  // e busca o registro atualizado (ex.: o painel depois de editar o simulado).
+  return (
+    <Routes>
+      <Route path={rotas.inicio} element={<Navigate to={rotas.login} replace />} />
+      <Route path={rotas.login} element={<ComGo>{(go) => <LoginScreen go={go} />}</ComGo>} />
+      <Route path={rotas.ativacao} element={<ComGo>{(go) => <AtivacaoScreen go={go} />}</ComGo>} />
+
+      <Route path={rotas.admin} element={<ComGo>{(go) => <AdminHomeScreen go={go} professors={usuarios} onRefresh={loadData} />}</ComGo>} />
+      <Route path={rotas.professorNovo} element={<ComGo>{(go) => <AdminCadastroScreen go={go} onRefresh={loadData} />}</ComGo>} />
+      <Route
+        path="/admin/professores/:professorId"
+        element={<CarregaProfessor key="admin-gestao">{(professor) => <ComGo>{(go) => <AdminGestaoScreen go={go} professor={professor} onRefresh={loadData} />}</ComGo>}</CarregaProfessor>}
+      />
+
+      <Route path="/painel" element={<ComFiltro>{(filtro) => <ComGo>{(go) => <ProfDashboardScreen go={go} filtro={filtro} />}</ComGo>}</ComFiltro>} />
+      <Route path="/painel/questoes-erro" element={<ComFiltro>{(filtro) => <ComGo>{(go) => <QuestoesErroScreen go={go} filtro={filtro} />}</ComGo>}</ComFiltro>} />
+
+      <Route path={rotas.turmas} element={<ComGo>{(go) => <TurmasScreen go={go} turmas={turmas} onRefresh={loadData} />}</ComGo>} />
+      <Route path={rotas.turmaNova} element={<ComGo>{(go) => <TurmaCadastroScreen go={go} onRefresh={loadData} />}</ComGo>} />
+      <Route
+        path="/turmas/:turmaId"
+        element={<CarregaTurma key="turma-detalhes">{(turma) => <ComGo>{(go) => <TurmaDetalhesScreen go={go} turma={turma} turmas={turmas} onRefresh={loadData} />}</ComGo>}</CarregaTurma>}
+      />
+      <Route
+        path="/turmas/:turmaId/editar"
+        element={<CarregaTurma key="turma-editar">{(turma) => <ComGo>{(go) => <TurmaCadastroScreen go={go} turma={turma} onRefresh={loadData} />}</ComGo>}</CarregaTurma>}
+      />
+
+      <Route path={rotas.simulados} element={<ComGo>{(go) => <SimuladosListaScreen go={go} />}</ComGo>} />
+      <Route path={rotas.simuladoNovo} element={<ComGo>{(go) => <SimuladoCriarScreen go={go} turmas={turmas} />}</ComGo>} />
+      <Route
+        path="/simulados/:simuladoId"
+        element={<CarregaSimulado key="simulado-painel">{(simulado) => <ComGo>{(go) => <SimuladoPainelScreen go={go} simulado={simulado} />}</ComGo>}</CarregaSimulado>}
+      />
+      <Route
+        path="/simulados/:simuladoId/editar"
+        element={<CarregaSimulado key="simulado-editar">{(simulado) => <ComGo>{(go) => <SimuladoEditarScreen go={go} simulado={simulado} turmas={turmas} />}</ComGo>}</CarregaSimulado>}
+      />
+      <Route
+        path="/simulados/:simuladoId/gabarito"
+        element={<CarregaSimulado key="simulado-gabarito">{(simulado) => <ComGo>{(go) => <GabaritoScreen go={go} simulado={simulado} />}</ComGo>}</CarregaSimulado>}
+      />
+      <Route
+        path="/simulados/:simuladoId/alunos/:alunoId/correcao"
+        element={
+          <CarregaSimulado key="escaneamento">
+            {(simulado) => (
+              <CarregaAluno simulado={simulado}>
+                {(aluno) => <ComGo>{(go) => <EscaneamentoScreen go={go} simulado={simulado} aluno={aluno} />}</ComGo>}
+              </CarregaAluno>
+            )}
+          </CarregaSimulado>
         }
-      }
-    });
-  }, [savedNav]);
+      />
+      <Route
+        path="/simulados/:simuladoId/alunos/:alunoId/boletim"
+        element={
+          <CarregaSimulado key="aluno-boletim">
+            {(simulado) => (
+              <CarregaAluno simulado={simulado}>
+                {(aluno) => <ComGo>{(go) => <BoletimScreen go={go} simulado={simulado} aluno={aluno} />}</ComGo>}
+              </CarregaAluno>
+            )}
+          </CarregaSimulado>
+        }
+      />
 
-  // Telas que dependem de um item selecionado ficam em branco até a restauração terminar,
-  // para não exibir dados de fallback por um instante.
-  const isRestoringSelection =
-    (screen === 'admin-gestao' && !selectedProfessor) ||
-    (TURMA_SCREENS.includes(screen) && !selectedTurma) ||
-    (SIMULADO_SCREENS.includes(screen) && !selectedSimulado) ||
-    (ALUNO_SCREENS.includes(screen) && !selectedAluno);
+      <Route path={rotas.perfil} element={<ComGo>{(go) => <ProfPerfilScreen go={go} />}</ComGo>} />
 
-  useEffect(() => {
-    if (isRestoringSelection) return;
-    saveNav({
-      screen,
-      professorId: selectedProfessor?.id ?? null,
-      turmaId: selectedTurma?.id ?? null,
-      simuladoId: selectedSimulado?.id ?? null,
-      alunoId: selectedAluno?.id ?? null,
-      filtro: selectedFiltro,
-    });
-  }, [screen, selectedProfessor, selectedTurma, selectedSimulado, selectedAluno, selectedFiltro, isRestoringSelection]);
-
-  const go = (s, payload = null) => {
-    setSelectedProfessor(s === 'admin-gestao' ? payload : null);
-    setSelectedTurma(TURMA_SCREENS.includes(s) ? payload : null);
-    // O simulado continua selecionado enquanto a navegação fica entre as telas dele.
-    // Nas telas de aluno o payload é o aluno, não o simulado.
-    if (!SIMULADO_SCREENS.includes(s)) setSelectedSimulado(null);
-    else if (payload && !ALUNO_SCREENS.includes(s)) setSelectedSimulado(payload);
-    setSelectedAluno(ALUNO_SCREENS.includes(s) ? payload : null);
-    setSelectedFiltro(s === 'questoes-erro' || s === 'prof-dashboard' ? payload : null);
-    setScreen(s);
-  };
-
-  if (isRestoringSelection) return null;
-
-  switch (screen) {
-    case 'login':
-      return <LoginScreen go={go} />;
-    case 'ativacao':
-      return <AtivacaoScreen go={go} />;
-    case 'admin-home':
-      return <AdminHomeScreen go={go} professors={usuarios} onRefresh={loadData} />;
-    case 'admin-gestao':
-      return <AdminGestaoScreen go={go} professor={selectedProfessor} onRefresh={loadData} />;
-    case 'admin-cadastro':
-      return <AdminCadastroScreen go={go} onRefresh={loadData} />;
-    case 'prof-dashboard':
-      return <ProfDashboardScreen go={go} filtro={selectedFiltro} />;
-    case 'questoes-erro':
-      return <QuestoesErroScreen go={go} filtro={selectedFiltro} />;
-    case 'prof-turmas':
-      return <TurmasScreen go={go} turmas={turmas} onRefresh={loadData} />;
-    case 'turma-detalhes':
-      return <TurmaDetalhesScreen go={go} turma={selectedTurma} turmas={turmas} onRefresh={loadData} />;
-    case 'turma-cadastro':
-      return <TurmaCadastroScreen go={go} onRefresh={loadData} />;
-    case 'turma-editar':
-      return <TurmaCadastroScreen go={go} turma={selectedTurma} onRefresh={loadData} />;
-    case 'simulados-lista':
-      return <SimuladosListaScreen go={go} />;
-    case 'simulado-criar':
-      return <SimuladoCriarScreen go={go} turmas={turmas} />;
-    case 'simulado-editar':
-      return <SimuladoEditarScreen go={go} simulado={selectedSimulado} turmas={turmas} />;
-    case 'simulado-painel':
-      return <SimuladoPainelScreen go={go} simulado={selectedSimulado} />;
-    case 'escaneamento':
-      return <EscaneamentoScreen go={go} simulado={selectedSimulado} aluno={selectedAluno} />;
-    case 'aluno-boletim':
-      return <BoletimScreen go={go} simulado={selectedSimulado} aluno={selectedAluno} />;
-    case 'simulado-gabarito':
-      return <GabaritoScreen go={go} simulado={selectedSimulado} />;
-    case 'prof-perfil':
-      return <ProfPerfilScreen go={go} />;
-    default:
-      return <LoginScreen go={go} />;
-  }
+      {/* Como antes do roteador, qualquer outra tela cai no login. */}
+      <Route path="*" element={<Navigate to={rotas.login} replace />} />
+    </Routes>
+  );
 }

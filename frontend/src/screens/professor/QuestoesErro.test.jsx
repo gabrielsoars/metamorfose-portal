@@ -1,9 +1,9 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import App from '../../App.jsx'
 import { ProfDashboardScreen } from './ProfDashboardScreen.jsx'
 import { QuestoesErroScreen } from './QuestoesErroScreen.jsx'
 import { calcularQuestoesComErro } from '../../services/simuladosService.js'
+import { renderApp } from '../../test/rotas'
 
 const det = (questao, correto, anulada = false) => ({ questao, correto, anulada, resposta_aluno: 'A', resposta_correta: 'B' })
 
@@ -191,14 +191,12 @@ describe('ProfDashboardScreen', () => {
 })
 
 describe('App', () => {
-  beforeEach(() => sessionStorage.clear())
   afterEach(() => vi.unstubAllGlobals())
 
-  it('restaura a tela de questões com maior erro e o filtro após o refresh', async () => {
+  it('abre a tela de questões com maior erro com o filtro da URL (sobrevive ao refresh)', async () => {
     mockApi()
-    sessionStorage.setItem('metamorfose:nav', JSON.stringify({ screen: 'questoes-erro', filtro: { turmaId: '20', simuladoId: '2' } }))
 
-    render(<App />)
+    renderApp('/painel/questoes-erro?turma=20&simulado=2')
 
     expect(await screen.findByRole('heading', { name: /questões com maior erro/i })).toBeInTheDocument()
     expect(screen.getByLabelText('Turma')).toHaveValue('20')

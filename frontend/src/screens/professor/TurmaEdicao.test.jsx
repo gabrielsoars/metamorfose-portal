@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import App from '../../App'
+import { renderApp } from '../../test/rotas'
 
 const json = (body) => ({ ok: true, status: 200, json: async () => body })
 
@@ -9,8 +9,6 @@ describe('Editar turma', () => {
 
   beforeEach(() => {
     turmaNoServidor = { id: 3, nome: 'Extensivo Noturno', ano: 2026, turno: 'Noite', alunos: 2 }
-    sessionStorage.clear()
-    sessionStorage.setItem('metamorfose:nav', JSON.stringify({ screen: 'turma-detalhes', turmaId: 3 }))
 
     vi.stubGlobal('fetch', vi.fn(async (input, options = {}) => {
       const url = String(input)
@@ -21,6 +19,7 @@ describe('Editar turma', () => {
       if (url.endsWith('/turmas/3/alunos')) {
         return json([{ id: 10, nome: 'Bruno', turma_id: 3 }, { id: 11, nome: 'Carla', turma_id: 3 }])
       }
+      if (url.endsWith('/turmas/3') && method === 'GET') return json(turmaNoServidor)
       if (url.endsWith('/turmas/3') && method === 'PATCH') {
         turmaNoServidor = { ...turmaNoServidor, ...JSON.parse(options.body) }
         return json({ id: 3, nome: turmaNoServidor.nome, ano: turmaNoServidor.ano, turno: turmaNoServidor.turno })
@@ -36,7 +35,7 @@ describe('Editar turma', () => {
 
   it('abre o menu ⋮ com a opção "Editar turma"', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderApp('/turmas/3')
 
     await user.click(await screen.findByRole('button', { name: /mais opções/i }))
 
@@ -45,7 +44,7 @@ describe('Editar turma', () => {
 
   it('edita a turma, envia o PATCH com os campos do formulário e volta aos detalhes atualizados', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    const router = renderApp('/turmas/3')
 
     await user.click(await screen.findByRole('button', { name: /mais opções/i }))
     await user.click(screen.getByRole('menuitem', { name: /editar turma/i }))
@@ -62,13 +61,11 @@ describe('Editar turma', () => {
       'http://localhost:8000/turmas/3',
       expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ nome: 'Extensivo Matutino', ano: 2026, turno: 'Manhã' }) }),
     )
-    expect(JSON.parse(sessionStorage.getItem('metamorfose:nav'))).toMatchObject({ screen: 'turma-detalhes', turmaId: 3 })
+    expect(router.state.location.pathname).toBe('/turmas/3')
   })
 
-  it('restaura a tela de edição após um refresh', async () => {
-    sessionStorage.setItem('metamorfose:nav', JSON.stringify({ screen: 'turma-editar', turmaId: 3 }))
-
-    render(<App />)
+  it('abre a tela de edição direto pela URL (refresh ou link copiado)', async () => {
+    renderApp('/turmas/3/editar')
 
     expect(await screen.findByRole('heading', { name: /editar turma/i })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByDisplayValue('Extensivo Noturno')).toBeInTheDocument())
@@ -76,7 +73,7 @@ describe('Editar turma', () => {
 
   it('mostra a matrícula do aluno como somente leitura e só envia o nome ao salvar', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderApp('/turmas/3')
 
     await screen.findByText('Bruno')
     await user.click(screen.getAllByRole('button').find((b) => b.className.includes('hover:bg-orange-50')))

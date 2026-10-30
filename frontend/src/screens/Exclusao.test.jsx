@@ -1,6 +1,6 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import App from '../App'
+import { renderApp } from '../test/rotas'
 
 const json = (body, status = 200) => ({ ok: status < 400, status, json: async () => body })
 const deleteCalls = (fetchMock) => fetchMock.mock.calls.filter(([, o]) => o?.method === 'DELETE')
@@ -20,8 +20,6 @@ describe('Excluir turma e aluno', () => {
       turmas = turmas.filter((t) => t.id !== 3)
       return json(null, 204)
     }
-    sessionStorage.clear()
-    sessionStorage.setItem('metamorfose:nav', JSON.stringify({ screen: 'turma-detalhes', turmaId: 3 }))
     vi.spyOn(window, 'alert').mockImplementation(() => {})
 
     vi.stubGlobal('fetch', vi.fn(async (input, options = {}) => {
@@ -30,6 +28,7 @@ describe('Excluir turma e aluno', () => {
       if (url.endsWith('/usuarios')) return json([])
       if (url.endsWith('/turmas') && method === 'GET') return json(turmas)
       if (url.endsWith('/turmas/3/alunos')) return json(alunos)
+      if (url.endsWith('/turmas/3') && method === 'GET') return json(turmas.find((t) => t.id === 3))
       if (url.endsWith('/turmas/3') && method === 'DELETE') return respostaDeleteTurma()
       if (url.endsWith('/alunos/10') && method === 'DELETE') {
         alunos = alunos.filter((a) => a.id !== 10)
@@ -46,7 +45,7 @@ describe('Excluir turma e aluno', () => {
 
   it('oferece "Excluir turma" no menu ⋮ e pede confirmação dizendo quantos alunos serão apagados', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderApp('/turmas/3')
 
     await screen.findByText('Bruno')
     await user.click(screen.getByRole('button', { name: /mais opções/i }))
@@ -61,7 +60,7 @@ describe('Excluir turma e aluno', () => {
   it('cancelar a exclusão da turma não chama a API', async () => {
     const user = userEvent.setup()
     const fetchMock = global.fetch
-    render(<App />)
+    renderApp('/turmas/3')
 
     await screen.findByText('Bruno')
     await user.click(screen.getByRole('button', { name: /mais opções/i }))
@@ -76,7 +75,7 @@ describe('Excluir turma e aluno', () => {
   it('confirmar exclui a turma, volta para a lista de turmas e ela não aparece mais', async () => {
     const user = userEvent.setup()
     const fetchMock = global.fetch
-    render(<App />)
+    const router = renderApp('/turmas/3')
 
     await screen.findByText('Bruno')
     await user.click(screen.getByRole('button', { name: /mais opções/i }))
@@ -87,14 +86,14 @@ describe('Excluir turma e aluno', () => {
     expect(deleteCalls(fetchMock).map(([url]) => url)).toEqual(['http://localhost:8000/turmas/3'])
     expect(screen.getByText('Turma Outra')).toBeInTheDocument()
     expect(screen.queryByText('Extensivo Noturno')).not.toBeInTheDocument()
-    expect(JSON.parse(sessionStorage.getItem('metamorfose:nav')).screen).toBe('prof-turmas')
+    expect(router.state.location.pathname).toBe('/turmas')
   })
 
   it('mostra a mensagem do backend quando a API recusa (409) e continua na turma', async () => {
     const user = userEvent.setup()
     const mensagem = 'Não é possível excluir a turma: ela está vinculada a 1 simulado(s) (“ENEM”).'
     respostaDeleteTurma = () => json({ detail: mensagem }, 409)
-    render(<App />)
+    renderApp('/turmas/3')
 
     await screen.findByText('Bruno')
     await user.click(screen.getByRole('button', { name: /mais opções/i }))
@@ -109,7 +108,7 @@ describe('Excluir turma e aluno', () => {
   it('cancelar a exclusão do aluno não chama a API', async () => {
     const user = userEvent.setup()
     const fetchMock = global.fetch
-    render(<App />)
+    renderApp('/turmas/3')
 
     await user.click(await screen.findByRole('button', { name: 'Excluir aluno Bruno' }))
     expect(screen.getByRole('dialog')).toHaveTextContent('Excluir o aluno Bruno?')
@@ -122,7 +121,7 @@ describe('Excluir turma e aluno', () => {
   it('confirmar exclui o aluno na API e o remove da lista', async () => {
     const user = userEvent.setup()
     const fetchMock = global.fetch
-    render(<App />)
+    renderApp('/turmas/3')
 
     await user.click(await screen.findByRole('button', { name: 'Excluir aluno Bruno' }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }))
@@ -147,8 +146,6 @@ describe('Excluir simulado', () => {
 
   beforeEach(() => {
     simulados = [simulado, { ...simulado, id: 10, titulo: 'Outro Simulado' }]
-    sessionStorage.clear()
-    sessionStorage.setItem('metamorfose:nav', JSON.stringify({ screen: 'simulado-painel', simuladoId: 9 }))
     vi.spyOn(window, 'alert').mockImplementation(() => {})
 
     vi.stubGlobal('fetch', vi.fn(async (input, options = {}) => {
@@ -175,7 +172,7 @@ describe('Excluir simulado', () => {
   it('cancelar a exclusão do simulado não chama a API', async () => {
     const user = userEvent.setup()
     const fetchMock = global.fetch
-    render(<App />)
+    renderApp('/simulados/9')
 
     await user.click(await screen.findByRole('button', { name: /mais opções/i }))
     await user.click(screen.getByRole('menuitem', { name: /excluir simulado/i }))
@@ -191,7 +188,7 @@ describe('Excluir simulado', () => {
   it('confirmar exclui o simulado, volta para a lista e ele não aparece mais', async () => {
     const user = userEvent.setup()
     const fetchMock = global.fetch
-    render(<App />)
+    const router = renderApp('/simulados/9')
 
     await user.click(await screen.findByRole('button', { name: /mais opções/i }))
     await user.click(screen.getByRole('menuitem', { name: /excluir simulado/i }))
@@ -201,7 +198,7 @@ describe('Excluir simulado', () => {
     expect(deleteCalls(fetchMock).map(([url]) => url)).toEqual(['http://localhost:8000/simulados/9'])
     expect(await screen.findByText('Outro Simulado')).toBeInTheDocument()
     expect(screen.queryByText('1º Simulado ENEM')).not.toBeInTheDocument()
-    expect(JSON.parse(sessionStorage.getItem('metamorfose:nav')).screen).toBe('simulados-lista')
+    expect(router.state.location.pathname).toBe('/simulados')
   })
 
   it('mostra o erro da API e continua no painel', async () => {
@@ -213,7 +210,7 @@ describe('Excluir simulado', () => {
       if (url.endsWith('/turmas/3/alunos')) return json([])
       return json(simulado)
     })
-    render(<App />)
+    renderApp('/simulados/9')
 
     await user.click(await screen.findByRole('button', { name: /mais opções/i }))
     await user.click(screen.getByRole('menuitem', { name: /excluir simulado/i }))
