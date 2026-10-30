@@ -4,7 +4,13 @@ import { C } from '../../data/constants.js';
 import { listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
 import { MobileShell } from '../../components/ui.jsx';
 
+// Ações do menu ⋮ do cabeçalho. Para incluir outra, basta acrescentar um item aqui.
+const MENU_ACOES = [
+  { label: 'Editar simulado', icon: Edit2, screen: 'simulado-editar' },
+];
+
 export function SimuladoPainelScreen({ go, simulado }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [alunos, setAlunos] = useState([]);
 
@@ -40,9 +46,36 @@ export function SimuladoPainelScreen({ go, simulado }) {
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>{simulado?.turmas.map((t) => t.nome).join(', ')}</p>
           <h1 className="text-base font-bold text-gray-900 leading-tight truncate">{simulado?.titulo}</h1>
         </div>
-        <button type="button" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            aria-label="Mais opções"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+            className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+              <div role="menu" className="absolute right-0 top-11 z-40 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-1">
+                {MENU_ACOES.map((acao) => (
+                  <button
+                    key={acao.label}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); go(acao.screen); }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 text-left"
+                  >
+                    <acao.icon size={16} /> {acao.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </header>
 
       <div className="bg-white px-6 py-4 border-b border-gray-100 z-10 shadow-sm">
