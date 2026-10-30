@@ -30,3 +30,19 @@ def patch_turma(turma_id: int, turma_in: TurmaUpdate, db: Session = Depends(get_
     if turma is None:
         raise HTTPException(status_code=404, detail="Turma não encontrada.")
     return turma
+
+@router.delete("/{turma_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_turma(turma_id: int, db: Session = Depends(get_db)):
+    try:
+        turma_service.excluir_turma(db, turma_id)
+    except turma_service.TurmaNaoEncontrada:
+        raise HTTPException(status_code=404, detail="Turma não encontrada.")
+    except turma_service.TurmaComSimulados as exc:
+        titulos = ", ".join(f"“{t}”" for t in exc.titulos)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Não é possível excluir a turma: ela está vinculada a {len(exc.titulos)} "
+                f"simulado(s) ({titulos}). Remova a turma desses simulados antes de excluí-la."
+            ),
+        )

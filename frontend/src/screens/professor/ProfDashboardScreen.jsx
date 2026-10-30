@@ -1,8 +1,12 @@
-import { LogOut, ChevronDown, Bell, TrendingUp } from 'lucide-react';
+import { LogOut, Bell, TrendingUp } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { MobileShell, BottomNav } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER, HEADER_TOP } from '../../components/layout.js';
+import { useQuestoesErro, FiltrosQuestoes, QuestoesErroLista } from './QuestoesErroScreen.jsx';
 
-export function ProfDashboardScreen({ go, turmas }) {
+export function ProfDashboardScreen({ go, filtro }) {
+  const questoes = useQuestoesErro(filtro);
+
   const bars = [
     { month: 'Mar', pct: 45, height: 48 },
     { month: 'Abr', pct: 52, height: 64 },
@@ -10,15 +14,13 @@ export function ProfDashboardScreen({ go, turmas }) {
     { month: 'Jun', pct: 68, height: 96, current: true },
   ];
 
-  const critical = [
-    { q: 'Questão 12', pct: 82, color: '#ef4444' },
-    { q: 'Questão 24', sub: 'Física', pct: 65, color: '#f97316' },
-    { q: 'Questão 08', sub: 'Matemática', pct: 58, color: '#f97316' },
-  ];
-
   return (
-    <MobileShell>
-      <header className="bg-white px-6 pt-12 pb-4 shadow-sm z-20 flex justify-between items-center">
+    <AppShell go={go} active="dashboard" onNav={(tab) => {
+      if (tab === 'turmas') go('prof-turmas');
+      else if (tab === 'simulados') go('simulados-lista');
+      else if (tab === 'perfil') go('prof-perfil');
+    }}>
+      <header className={`bg-white px-6 ${HEADER_TOP} pb-4 ${GUTTER} shadow-sm z-20 flex justify-between items-center`}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-black font-bold text-sm" style={{ background: C.yellow }}>
             P
@@ -29,14 +31,15 @@ export function ProfDashboardScreen({ go, turmas }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" className="relative w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:text-orange-500 transition-colors">
+          <button type="button" aria-label="Notificações" className="relative w-11 h-11 md:w-10 md:h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:text-orange-500 transition-colors">
             <Bell size={20} />
             <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full border border-white" style={{ background: C.orange }} />
           </button>
           <button
             type="button"
             onClick={() => go('login')}
-            className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
+            aria-label="Sair"
+            className="w-11 h-11 md:w-10 md:h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
             title="Sair"
           >
             <LogOut size={18} />
@@ -44,24 +47,12 @@ export function ProfDashboardScreen({ go, turmas }) {
         </div>
       </header>
 
-      <div className="bg-white px-6 pb-4 border-b border-gray-100 z-10 space-y-2">
-        <div className="flex gap-2">
-          {[
-            ['Todas as Turmas', 'Extensivo Noturno', 'Intensivo Sábado'],
-            ['Último Simulado', '1º Simulado ENEM', 'Prova Diagnóstica']
-          ].map((opts, i) => (
-            <div key={i} className="relative flex-1">
-              <select className="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none text-xs font-bold text-gray-700 appearance-none">
-                {opts.map((o) => <option key={o}>{o}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-          ))}
-        </div>
+      <div className={`bg-white px-6 pb-4 ${GUTTER} border-b border-gray-100 z-10 space-y-2 lg:[&>div]:max-w-2xl`}>
+        <FiltrosQuestoes q={questoes} />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 pb-24" style={{ scrollbarWidth: 'none' }}>
-        <div className="rounded-2xl p-5 text-white shadow-md relative overflow-hidden" style={{ background: C.orange }}>
+      <div className={`flex-1 overflow-y-auto p-6 pb-8 ${GUTTER} grid content-start gap-5 md:grid-cols-2 lg:gap-6`} style={{ scrollbarWidth: 'none' }}>
+        <div className="md:col-span-2 rounded-2xl p-5 text-white shadow-md relative overflow-hidden" style={{ background: C.orange }}>
           <svg className="absolute -right-6 -bottom-6 w-32 h-32 text-white opacity-10" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
           <p className="text-white/80 text-xs font-bold uppercase tracking-wider mb-1">Média de Acertos</p>
           <div className="flex items-end gap-2">
@@ -76,23 +67,17 @@ export function ProfDashboardScreen({ go, turmas }) {
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-gray-900 text-sm">Atenção: Alto índice de erro</h3>
-            <button type="button" className="text-[10px] font-bold uppercase hover:underline" style={{ color: C.orange }}>Ver todas</button>
+            <button
+              type="button"
+              onClick={() => go('questoes-erro', questoes.filtro)}
+              disabled={!questoes.simulado}
+              className="text-[10px] font-bold uppercase hover:underline disabled:opacity-40 disabled:no-underline"
+              style={{ color: C.orange }}
+            >
+              Ver todas
+            </button>
           </div>
-          <div className="space-y-4">
-            {critical.map(({ q, sub, pct, color }) => (
-              <div key={q}>
-                <div className="flex justify-between items-end mb-1">
-                  <p className="text-xs font-bold text-gray-800">
-                    {q} {sub && <span className="text-[9px] text-gray-400 font-normal ml-1">({sub})</span>}
-                  </p>
-                  <p className="text-xs font-bold" style={{ color }}>{pct}% erraram</p>
-                </div>
-                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <QuestoesErroLista q={questoes} limite={3} />
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
@@ -108,12 +93,6 @@ export function ProfDashboardScreen({ go, turmas }) {
           </div>
         </div>
       </div>
-
-      <BottomNav active="dashboard" onNav={(tab) => {
-        if (tab === 'turmas') go('prof-turmas');
-        else if (tab === 'simulados') go('simulados-lista');
-        else if (tab === 'perfil') go('prof-perfil');
-      }} />
-    </MobileShell>
+    </AppShell>
   );
 }

@@ -23,6 +23,13 @@ def obter_aluno(aluno_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Aluno não encontrado.")
     return aluno
 
+@router.delete("/alunos/{aluno_id}", status_code=204)
+def delete_aluno(aluno_id: int, db: Session = Depends(get_db)):
+    try:
+        aluno_service.excluir_aluno(db, aluno_id)
+    except aluno_service.AlunoNaoEncontrado:
+        raise HTTPException(status_code=404, detail="Aluno não encontrado.")
+
 @router.post("/turmas/{turma_id}/alunos", response_model=AlunoOut)
 def post_aluno(turma_id: int, aluno_in: AlunoCreate, db: Session = Depends(get_db)):
     try:

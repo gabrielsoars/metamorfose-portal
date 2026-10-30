@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { criarSimulado } from '../../services/simuladosService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 
 const inputClass = 'w-full px-4 py-3 bg-white border border-gray-200 rounded-xl outline-none text-gray-800 font-medium';
 const onFocus = (e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; };
@@ -40,19 +42,19 @@ export function SimuladoCriarScreen({ go, turmas = [] }) {
   }
 
   return (
-    <MobileShell>
-      <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => go('simulados-lista')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+    <AppShell go={go} active="simulados" mobileNav={false}>
+      <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER_FORM} shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
+        <button type="button" onClick={() => go('simulados-lista')} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Passo 1 de 2</p>
           <h1 className="text-lg font-bold text-gray-900 leading-tight">Novo Simulado</h1>
         </div>
-        <div className="w-10 h-10" />
+        <div className="w-11 h-11 md:w-10 md:h-10" />
       </header>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-36" style={{ scrollbarWidth: 'none' }}>
+      <div className={`flex-1 overflow-y-auto p-6 space-y-8 pb-36 ${GUTTER_FORM}`} style={{ scrollbarWidth: 'none' }}>
         <section className="space-y-4">
           <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
             <span className="w-5 h-5 rounded-full flex items-center justify-center text-black text-[10px] font-black" style={{ background: C.yellow }}>1</span>
@@ -107,7 +109,7 @@ export function SimuladoCriarScreen({ go, turmas = [] }) {
             </h2>
             <p className="text-xs text-gray-500 mt-2">Selecione quais turmas realizaram esta prova.</p>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-3">
             {turmas.length === 0 && (
               <p className="text-sm text-gray-400 font-medium">Nenhuma turma cadastrada.</p>
             )}
@@ -138,12 +140,12 @@ export function SimuladoCriarScreen({ go, turmas = [] }) {
         </section>
       </div>
 
-      <div className="absolute bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-30">
+      <div className={`absolute bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 ${GUTTER_FORM} shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-30`}>
         <p className="text-xs text-center text-gray-500 mb-3 font-medium">Próxima etapa: cadastrar o gabarito oficial</p>
         <OrangeBtn onClick={handleSave}>
           {saving ? 'Salvando...' : <>Salvar e Continuar <ArrowRight size={20} /></>}
         </OrangeBtn>
       </div>
-    </MobileShell>
+    </AppShell>
   );
 }

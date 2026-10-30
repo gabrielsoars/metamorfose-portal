@@ -1,15 +1,6 @@
-import { LayoutDashboard, Users, FileText, User } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { C } from '../data/constants.js';
-
-export function MobileShell({ children }) {
-  return (
-    <div className="min-h-screen bg-gray-200 flex items-center justify-center p-0 sm:p-6" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <div className="w-full max-w-md h-screen sm:h-[820px] bg-gray-50 sm:rounded-2xl sm:shadow-2xl flex flex-col relative overflow-hidden">
-        {children}
-      </div>
-    </div>
-  );
-}
+import { useEscape } from './hooks.js';
 
 export function OrangeBtn({ children, onClick, className = "" }) {
   return (
@@ -42,32 +33,33 @@ export function Input({ label, type = "text", placeholder, defaultValue, classNa
   );
 }
 
-export function BottomNav({ active, onNav }) {
-  const items = [
-    { key: 'dashboard', label: 'Início', icon: LayoutDashboard },
-    { key: 'turmas', label: 'Turmas', icon: Users },
-    { key: 'simulados', label: 'Simulados', icon: FileText },
-    { key: 'perfil', label: 'Perfil', icon: User },
-  ];
+// Painel de edição: no celular sobe de baixo (bottom sheet); a partir do tablet é um modal centralizado.
+// Fecha pelo fundo escurecido e pela tecla Esc.
+export function Sheet({ onClose, labelledBy, children }) {
+  const painel = useRef(null);
+  useEscape(onClose);
+
+  // Leva o foco para dentro do painel, para o Tab começar pelos campos dele.
+  useEffect(() => {
+    painel.current?.focus();
+  }, []);
 
   return (
-    <nav className="absolute bottom-0 inset-x-0 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] z-30">
-      <div className="flex justify-between items-center px-2 py-1 h-16">
-        {items.map(({ key, label, icon: Icon }) => {
-          const isActive = active === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onNav(key)}
-              className="flex-1 flex flex-col items-center justify-center gap-1"
-            >
-              <Icon size={22} style={{ color: isActive ? C.orange : '#9ca3af' }} strokeWidth={isActive ? 2.5 : 2} />
-              <span className="text-[10px] font-bold" style={{ color: isActive ? C.orange : '#6b7280' }}>{label}</span>
-            </button>
-          );
-        })}
+    <div className="fixed inset-0 z-40 flex items-end md:items-center md:justify-center md:p-6">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
+      <div
+        ref={painel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelledBy}
+        tabIndex={-1}
+        className="sheet-anim relative w-full max-h-full overflow-y-auto bg-white rounded-t-[2rem] md:max-w-lg md:rounded-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.12)] md:shadow-2xl outline-none"
+      >
+        <div className="w-full flex justify-center pt-4 pb-2 md:hidden">
+          <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+        </div>
+        {children}
       </div>
-    </nav>
+    </div>
   );
 }
