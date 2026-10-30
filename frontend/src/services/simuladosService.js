@@ -15,6 +15,17 @@ export function criarSimulado(simulado) {
   });
 }
 
+export function atualizarSimulado(id, dados) {
+  return requestJson(`/simulados/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(dados),
+  });
+}
+
+export function excluirSimulado(id) {
+  return requestJson(`/simulados/${id}`, { method: 'DELETE' });
+}
+
 export function obterGabarito(id) {
   return requestJson(`/simulados/${id}/gabarito`);
 }

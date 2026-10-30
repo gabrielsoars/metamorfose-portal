@@ -9,6 +9,7 @@ export function GabaritoScreen({ go, simulado }) {
   const [answers, setAnswers] = useState({});
   const [saving, setSaving] = useState(false);
   const simuladoId = simulado?.id;
+  const totalQuestoes = simulado?.total_questoes;
 
   useEffect(() => {
     if (!simuladoId) return undefined;
@@ -19,6 +20,8 @@ export function GabaritoScreen({ go, simulado }) {
         if (!isMounted) return;
         const salvas = {};
         (Array.isArray(itens) ? itens : []).forEach((item) => {
+          // Questões acima do total atual (simulado reduzido) ficam fora; o backend recusaria salvá-las.
+          if (item.num_questao > totalQuestoes) return;
           salvas[item.num_questao] = item.alt_correta;
         });
         setAnswers(salvas);
@@ -30,7 +33,7 @@ export function GabaritoScreen({ go, simulado }) {
     return () => {
       isMounted = false;
     };
-  }, [simuladoId]);
+  }, [simuladoId, totalQuestoes]);
 
   if (!simulado) {
     return (
