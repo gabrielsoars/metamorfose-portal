@@ -66,3 +66,32 @@ export function respostasSalvas(correcao) {
   });
   return answers;
 }
+
+// A nota do backend vem como "acertos/total" (ex.: "7/10"). Devolve null se não for utilizável.
+export function parseNota(nota) {
+  const match = /^(\d+)\s*\/\s*(\d+)$/.exec(String(nota ?? '').trim());
+  if (!match) return null;
+  const acertos = Number(match[1]);
+  const total = Number(match[2]);
+  if (total <= 0) return null;
+  return { acertos, total, percentual: (acertos / total) * 100 };
+}
+
+// Ranking da turma: só alunos corrigidos com nota utilizável, do maior para o menor percentual
+// (empate: ordem alfabética). A média é a dos percentuais; null se ninguém foi corrigido.
+export function montarRanking(alunos) {
+  const ranking = alunos
+    .filter((a) => a.corrected)
+    .map((a) => ({ ...a, parsed: parseNota(a.nota) }))
+    .filter((a) => a.parsed)
+    .sort((a, b) => b.parsed.percentual - a.parsed.percentual || a.name.localeCompare(b.name, 'pt-BR'))
+    .map((a, i) => ({ ...a, posicao: i + 1 }));
+
+  if (!ranking.length) return { ranking, media: null };
+
+  const soma = (campo) => ranking.reduce((acc, a) => acc + a.parsed[campo], 0);
+  return {
+    ranking,
+    media: { acertos: soma('acertos') / ranking.length, total: soma('total') / ranking.length, percentual: soma('percentual') / ranking.length },
+  };
+}

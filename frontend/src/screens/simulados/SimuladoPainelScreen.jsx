@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Search, Edit2, Camera, Check, Clock } from 'lucide-react';
+import { ArrowLeft, Search, Edit2, Camera, Check, Clock, Trophy } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { listarAlunosDoSimulado, normalizeAlunoSimulado } from '../../services/simuladosService.js';
+import { listarAlunosDoSimulado, normalizeAlunoSimulado, montarRanking } from '../../services/simuladosService.js';
 import { MobileShell } from '../../components/ui.jsx';
+
+// Média com no máximo uma casa decimal, em pt-BR (ex.: 7,5).
+const formatarNumero = (n) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
 
 export function SimuladoPainelScreen({ go, simulado }) {
   const [search, setSearch] = useState('');
@@ -29,6 +32,7 @@ export function SimuladoPainelScreen({ go, simulado }) {
   const filtered = alunos.filter((a) => a.name.toLowerCase().includes(search.toLowerCase()));
   const corrected = alunos.filter((a) => a.corrected).length;
   const pct = alunos.length ? Math.round((corrected / alunos.length) * 100) : 0;
+  const { ranking, media } = montarRanking(alunos);
 
   return (
     <MobileShell>
@@ -72,11 +76,32 @@ export function SimuladoPainelScreen({ go, simulado }) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-3 pb-8" style={{ scrollbarWidth: 'none' }}>
+        {media && (
+          <section aria-label="Ranking da turma" className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-1.5"><Trophy size={16} style={{ color: C.orange }} /> Ranking da turma</h2>
+              <p className="text-xs font-bold text-gray-500">
+                Média: <span className="text-emerald-600">{formatarNumero(media.acertos)} de {formatarNumero(media.total)} ({Math.round(media.percentual)}%)</span>
+              </p>
+            </div>
+            <ol className="space-y-1.5">
+              {ranking.map((a) => (
+                <li key={a.id} className="flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <span className="truncate">{`${a.posicao}º ${a.name}`}</span>
+                  <span className="font-bold text-emerald-600 shrink-0 ml-2">{Math.round(a.parsed.percentual)}%</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
         {filtered.map((aluno) => (
           <div key={aluno.id} className="bg-white p-4 rounded-2xl border shadow-sm relative overflow-hidden" style={{ borderColor: aluno.corrected ? '#d1fae5' : '#e5e7eb' }}>
             {aluno.corrected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500" />}
             <div className="flex items-center justify-between" style={{ marginLeft: aluno.corrected ? 8 : 0 }}>
-              <div className="flex-1">
+              <div
+                className={`flex-1 ${aluno.corrected ? 'cursor-pointer text-left' : ''}`}
+                {...(aluno.corrected && { role: 'button', tabIndex: 0, 'aria-label': `Ver boletim de ${aluno.name}`, onClick: () => go('aluno-boletim', aluno), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('aluno-boletim', aluno); } } })}
+              >
                 <h3 className="font-bold text-gray-900 text-sm">{aluno.name}</h3>
                 <div className="flex items-center gap-2 mt-1">
                   {aluno.corrected ? (
@@ -92,6 +117,7 @@ export function SimuladoPainelScreen({ go, simulado }) {
                     </span>
                   )}
                 </div>
+                {aluno.corrected && <p className="text-[11px] font-bold mt-1.5" style={{ color: C.orange }}>Ver boletim</p>}
               </div>
               {aluno.corrected ? (
                 <button type="button" onClick={() => go('escaneamento', aluno)} aria-label={`Editar correção de ${aluno.name}`} className="w-9 h-9 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-500 hover:text-orange-500 hover:border-orange-300 transition-all">
