@@ -21,7 +21,7 @@ Tamanho: S (≤ meio dia) · M (1–2 dias)
 | D-02 | Registrar router e modelo de simulados no `monolito/app/main.py`    | S    | `fix/d02-registrar-simulados`   | ✅ Mergeada (PR #9)       |
 | D-03 | Cadastro de turma salvando na API                                   | S    | `feat/d03-cadastro-turma`       | ✅ Mergeada (PR #10)      |
 | D-04 | `simuladosService.js` + lista e criação de simulado integradas      | M    | `feat/d04-simulados`            | ✅ Pronta para PR         |
-| D-05 | Cadastro do gabarito oficial (`PUT /simulados/{id}/gabarito`)       | M    | `feat/d05-gabarito-oficial`     | A fazer                  |
+| D-05 | Cadastro do gabarito oficial (`PUT /simulados/{id}/gabarito`)       | M    | `feat/d05-gabarito-oficial`     | ✅ Pronta para PR         |
 | D-06 | Escaneamento: enviar imagem ao `scan_service` e exibir as respostas | M    | `feat/d06-escaneamento`         | ✅ Pronta para PR         |
 | D-07 | Calcular e mostrar a nota (respostas lidas × gabarito oficial)      | S    | `feat/d07-nota`                 | A fazer                  |
 
