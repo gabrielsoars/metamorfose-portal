@@ -4,6 +4,7 @@ import { C } from '../../data/constants.js';
 import { atualizarTurma, criarTurma, normalizeTurma } from '../../services/turmasService.js';
 import { OrangeBtn } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 
 const inputClass = 'w-full px-4 py-3 bg-white rounded-xl border border-gray-200 outline-none text-gray-800 font-medium';
 const onFocus = (e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; };
@@ -45,18 +46,18 @@ export function TurmaCadastroScreen({ go, turma, onRefresh }) {
 
   return (
     <AppShell go={go} active="turmas" mobileNav={false}>
-      <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => (editando ? go('turma-detalhes', turma) : go('prof-turmas'))} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+      <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER_FORM} shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
+        <button type="button" onClick={() => (editando ? go('turma-detalhes', turma) : go('prof-turmas'))} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>{editando ? 'Edição' : 'Cadastro'}</p>
           <h1 className="text-lg font-bold text-gray-900 leading-tight">{editando ? 'Editar Turma' : 'Nova Turma'}</h1>
         </div>
-        <div className="w-10 h-10" />
+        <div className="w-11 h-11 md:w-10 md:h-10" />
       </header>
 
-      <div className="flex-1 p-6 space-y-6">
+      <div className={`flex-1 overflow-y-auto p-6 space-y-6 ${GUTTER_FORM}`}>
         {!editando && (
           <div className="rounded-xl p-4 flex gap-3 border" style={{ background: `${C.yellow}33`, borderColor: `${C.yellow}88` }}>
             <Info size={20} className="shrink-0" style={{ color: C.orange }} />
