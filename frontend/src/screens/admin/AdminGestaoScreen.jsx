@@ -3,8 +3,11 @@ import { X, ChevronDown } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { atualizarUsuario } from '../../services/usuariosService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
-export function AdminGestaoScreen({ go, professor, onRefresh }) {
+export function AdminGestaoScreen({ professor, onRefresh }) {
+  const navigate = useNavigate();
   const [active, setActive] = useState(Boolean(professor?.active ?? true));
   const [nome, setNome] = useState(professor?.name || '');
   const [email, setEmail] = useState(professor?.email || '');
@@ -22,7 +25,7 @@ export function AdminGestaoScreen({ go, professor, onRefresh }) {
   }, [professor]);
 
   async function handleSave() {
-    if (!professor) return go('admin-home');
+    if (!professor) return navigate(rotas.admin);
 
     setSaving(true);
     try {
@@ -35,7 +38,7 @@ export function AdminGestaoScreen({ go, professor, onRefresh }) {
       });
 
       if (onRefresh) await onRefresh();
-      go('admin-home');
+      navigate(rotas.admin, { replace: true });
     } catch (error) {
       window.alert(error.message || 'Não foi possível salvar o professor.');
     } finally {
@@ -45,7 +48,7 @@ export function AdminGestaoScreen({ go, professor, onRefresh }) {
 
   return (
     <MobileShell>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-30" onClick={() => go('admin-home')} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-30" onClick={() => navigate(rotas.admin)} />
 
       <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-[2rem] z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.12)]" style={{ animation: 'slideUp 0.3s ease-out' }}>
         <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
@@ -57,7 +60,7 @@ export function AdminGestaoScreen({ go, professor, onRefresh }) {
         <div className="px-6 pb-8 pt-2">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900">Editar Professor</h2>
-            <button type="button" onClick={() => go('admin-home')} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+            <button type="button" onClick={() => navigate(rotas.admin)} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
               <X size={18} />
             </button>
           </div>

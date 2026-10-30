@@ -3,12 +3,16 @@ import { X, Info, Check } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { obterGabarito, salvarGabarito } from '../../services/simuladosService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
-export function GabaritoScreen({ go, simulado }) {
+export function GabaritoScreen({ simulado }) {
+  const navigate = useNavigate();
   // Respostas marcadas, indexadas pelo número da questão: { 1: 'A', 2: 'C' }
   const [answers, setAnswers] = useState({});
   const [saving, setSaving] = useState(false);
   const simuladoId = simulado?.id;
+  const totalQuestoes = simulado?.total_questoes;
 
   useEffect(() => {
     if (!simuladoId) return undefined;
@@ -19,6 +23,8 @@ export function GabaritoScreen({ go, simulado }) {
         if (!isMounted) return;
         const salvas = {};
         (Array.isArray(itens) ? itens : []).forEach((item) => {
+          // Questões acima do total atual (simulado reduzido) ficam fora; o backend recusaria salvá-las.
+          if (item.num_questao > totalQuestoes) return;
           salvas[item.num_questao] = item.alt_correta;
         });
         setAnswers(salvas);
@@ -30,14 +36,14 @@ export function GabaritoScreen({ go, simulado }) {
     return () => {
       isMounted = false;
     };
-  }, [simuladoId]);
+  }, [simuladoId, totalQuestoes]);
 
   if (!simulado) {
     return (
       <MobileShell>
         <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4 text-center">
           <p className="text-sm font-medium text-gray-500">Nenhum simulado selecionado.</p>
-          <OrangeBtn onClick={() => go('simulados-lista')}>Voltar para os simulados</OrangeBtn>
+          <OrangeBtn onClick={() => navigate(rotas.simulados)}>Voltar para os simulados</OrangeBtn>
         </div>
       </MobileShell>
     );
@@ -56,7 +62,7 @@ export function GabaritoScreen({ go, simulado }) {
     setSaving(true);
     try {
       await salvarGabarito(simulado.id, itens);
-      go('simulado-painel');
+      navigate(rotas.simulado(simulado.id), { replace: true });
     } catch (error) {
       window.alert(error.message || 'Não foi possível salvar o gabarito.');
     } finally {
@@ -67,7 +73,7 @@ export function GabaritoScreen({ go, simulado }) {
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => go('simulado-painel')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.simulado(simulado.id))} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <X size={24} />
         </button>
         <div className="text-center flex-1 px-2">

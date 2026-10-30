@@ -3,12 +3,15 @@ import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { criarSimulado } from '../../services/simuladosService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
 const inputClass = 'w-full px-4 py-3 bg-white border border-gray-200 rounded-xl outline-none text-gray-800 font-medium';
 const onFocus = (e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; };
 const onBlur = (e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; };
 
-export function SimuladoCriarScreen({ go, turmas = [] }) {
+export function SimuladoCriarScreen({ turmas = [] }) {
+  const navigate = useNavigate();
   const [titulo, setTitulo] = useState('');
   const [data, setData] = useState('');
   const [totalQuestoes, setTotalQuestoes] = useState('10');
@@ -32,7 +35,7 @@ export function SimuladoCriarScreen({ go, turmas = [] }) {
         total_questoes: Number(totalQuestoes),
         turmas_ids: selectedTurmas,
       });
-      go('simulado-gabarito', criado);
+      navigate(rotas.simuladoGabarito(criado.id), { replace: true });
     } catch (error) {
       window.alert(error.message || 'Não foi possível criar o simulado.');
       setSaving(false);
@@ -42,7 +45,7 @@ export function SimuladoCriarScreen({ go, turmas = [] }) {
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => go('simulados-lista')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.simulados)} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">

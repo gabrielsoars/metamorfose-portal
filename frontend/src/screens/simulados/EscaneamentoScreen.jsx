@@ -1,16 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
-import { X, Check, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Check, AlertTriangle } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { obterGabarito } from '../../services/simuladosService.js';
+import { obterGabarito, obterCorrecaoAluno, respostasSalvas, montarRespostas, salvarRespostasAluno } from '../../services/simuladosService.js';
 import { processarGabarito } from '../../services/scanService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { ImagePicker } from '../../components/ImagePicker.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
 const AVISO_STATUS = {
   sem_resposta: 'Atenção: Em branco ou rasura',
   multipla_marcacao: 'Atenção: Múltipla marcação',
 };
 
-export function EscaneamentoScreen({ go, simulado, aluno }) {
+export function EscaneamentoScreen({ simulado, aluno }) {
+  const navigate = useNavigate();
   // Respostas e status do scan, indexados pelo número da questão.
   const [answers, setAnswers] = useState({});
   const [statuses, setStatuses] = useState({});
@@ -19,14 +23,14 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
   const [scanTotal, setScanTotal] = useState(null);
   // Gabarito oficial: null enquanto carrega, depois a lista de { num_questao, alt_correta, anulada }.
   const [gabarito, setGabarito] = useState(null);
-  const fileInput = useRef(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
     obterGabarito(simulado.id)
       .then((itens) => {
-        if (isMounted) setGabarito(Array.isArray(itens) ? itens : []);
+        if (isMounted) setGabarito((Array.isArray(itens) ? itens : []).filter((g) => g.num_questao <= simulado.total_questoes));
       })
       .catch((error) => {
         if (isMounted) window.alert(error.message || 'Não foi possível carregar o gabarito oficial.');
@@ -35,7 +39,27 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
     return () => {
       isMounted = false;
     };
-  }, [simulado.id]);
+  }, [simulado.id, simulado.total_questoes]);
+
+  // Aluno já corrigido: carrega as respostas salvas (sem sobrescrever o que o scan já preencheu).
+  useEffect(() => {
+    let isMounted = true;
+
+    obterCorrecaoAluno(simulado.id, aluno.id)
+      .then((correcao) => {
+        const salvas = respostasSalvas(correcao);
+        if (isMounted && Object.keys(salvas).length) {
+          setAnswers((prev) => (Object.keys(prev).length ? prev : salvas));
+        }
+      })
+      .catch((error) => {
+        if (isMounted) window.alert(error.message || 'Não foi possível carregar as respostas salvas.');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [simulado.id, aluno.id]);
 
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
@@ -49,11 +73,9 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
     ? gabarito.filter((g) => g.anulada || answers[g.num_questao] === g.alt_correta).length
     : 0;
 
-  const handleFile = async (event) => {
-    const arquivo = event.target.files?.[0];
-    event.target.value = '';
-    if (!arquivo) return;
-
+  // O ImagePicker já validou e reduziu o arquivo; aqui só envia ao scan.
+  // Se o scan falhar, o erro sobe e o ImagePicker mostra o alerta.
+  const handleFile = async (arquivo) => {
     setProcessing(true);
     try {
       const resultado = await processarGabarito(arquivo, total);
@@ -68,10 +90,29 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
       setStatuses(status);
       setScanTotal(resultado.total_questoes);
       setPreview(URL.createObjectURL(arquivo));
-    } catch (error) {
-      window.alert(error.message || 'Não foi possível processar a imagem.');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleConcluir = async () => {
+    if (saving) return;
+    if (!gabarito || gabarito.length === 0) {
+      window.alert('Cadastre o gabarito oficial antes de concluir a correção.');
+      return;
+    }
+    if (Object.keys(answers).length === 0) {
+      window.alert('Envie a foto ou marque ao menos uma resposta antes de concluir.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await salvarRespostasAluno(simulado.id, aluno.id, montarRespostas(gabarito, answers, total));
+      navigate(rotas.simulado(simulado.id), { replace: true });
+    } catch (error) {
+      window.alert(error.message || 'Não foi possível salvar a correção.');
+      setSaving(false);
     }
   };
 
@@ -86,7 +127,7 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => go('simulado-painel')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.simulado(simulado.id))} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
           <X size={24} />
         </button>
         <div className="text-center flex-1 px-2">
@@ -96,22 +137,7 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
         <div className="w-10 h-10" />
       </header>
 
-      <div className="bg-gray-900 w-full h-48 relative flex items-center justify-center overflow-hidden shrink-0">
-        {preview ? (
-          <img src={preview} alt="Gabarito enviado" className="h-full w-full object-contain" />
-        ) : (
-          <p className="text-xs font-semibold text-white/60">Nenhuma foto enviada</p>
-        )}
-        <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-        <button
-          type="button"
-          onClick={() => fileInput.current?.click()}
-          disabled={processing}
-          className="absolute bottom-3 right-3 bg-white/20 backdrop-blur-md border border-white/30 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-white/30 transition-colors"
-        >
-          <RefreshCw size={14} /> {processing ? 'Processando...' : preview ? 'Refazer Foto' : 'Enviar foto'}
-        </button>
-      </div>
+      <ImagePicker onSelect={handleFile} previewUrl={preview} processing={processing} />
 
       <div className="bg-yellow-50 px-6 py-2.5 border-b border-yellow-100 flex items-center gap-2 shrink-0">
         <AlertTriangle size={16} className="text-yellow-600" />
@@ -169,8 +195,8 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
             <p className="text-lg font-black text-emerald-600">{acertos} / {totalGabarito} <span className="text-xs font-bold text-emerald-600/70 ml-1">acertos</span></p>
           )}
         </div>
-        <OrangeBtn onClick={() => go('simulado-painel')}>
-          Concluir <Check size={20} />
+        <OrangeBtn onClick={handleConcluir}>
+          {saving ? 'Salvando...' : 'Concluir'} <Check size={20} />
         </OrangeBtn>
       </div>
     </MobileShell>

@@ -435,3 +435,31 @@ def test_registrar_resposta_em_questao_anulada(client):
     assert res.status_code == 200
     assert res.json()["nota"] == "1/1"
     assert res.json()["detalhamento"][0]["resposta_correta"] is None
+
+
+# --------------------------------------------------------------------------- #
+# Redução do número de questões (itens acima do total não entram na nota)
+# --------------------------------------------------------------------------- #
+
+def test_nota_ignora_gabarito_acima_do_total_apos_reduzir_questoes(client):
+    c = _cenario(client)
+    sid = c["simulado_id"]
+    # Aluno acerta as 5 questões (gabarito BADCE)
+    url = f"/simulados/{sid}/alunos/{c['ana']}"
+    client.put(url, json={"respostas": [
+        {"questao": i + 1, "resposta_marcada": alt} for i, alt in enumerate("BADCE")
+    ]})
+    assert client.get(url).json()["nota"] == "5/5"
+
+    # Reduz o simulado para 3 questões; os itens 4 e 5 continuam no banco
+    res = client.patch(f"/simulados/{sid}", json={"total_questoes": 3})
+    assert res.status_code == 200
+
+    alunos = {a["id"]: a for a in client.get(f"/simulados/{sid}/alunos").json()["alunos"]}
+    assert alunos[c["ana"]]["nota"] == "3/3"
+
+    correcao = client.get(url).json()
+    assert correcao["acertos"] == 3
+    assert correcao["total_questoes"] == 3
+    assert correcao["nota"] == "3/3"
+    assert [d["questao"] for d in correcao["detalhamento"]] == [1, 2, 3]

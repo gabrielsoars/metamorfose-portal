@@ -32,5 +32,10 @@ def atualizar_turma(db: Session, turma: Turma, dados_atualizacao: dict):
     db.refresh(turma)
     return turma
 
+def excluir_turma(db: Session, turma: Turma) -> None:
+    """Apaga a turma; os alunos devem ser apagados antes (aluno_repository.excluir_por_turma)."""
+    db.delete(turma)
+    db.commit()
+
 def buscar_turmas_por_ids(db: Session, turmas_ids: list[int]) -> list[Turma]:
     return db.query(Turma).filter(Turma.id.in_(turmas_ids)).all()

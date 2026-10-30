@@ -1,17 +1,22 @@
 import { useState } from 'react';
 import { ArrowLeft, Info, ChevronDown } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { criarTurma, normalizeTurma } from '../../services/turmasService.js';
+import { atualizarTurma, criarTurma } from '../../services/turmasService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
 const inputClass = 'w-full px-4 py-3 bg-white rounded-xl border border-gray-200 outline-none text-gray-800 font-medium';
 const onFocus = (e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; };
 const onBlur = (e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; };
 
-export function TurmaCadastroScreen({ go, onRefresh }) {
-  const [nome, setNome] = useState('');
-  const [ano, setAno] = useState('2026');
-  const [turno, setTurno] = useState('Manhã');
+// Sem `turma` cadastra uma turma nova; com `turma` edita a turma existente.
+export function TurmaCadastroScreen({ turma, onRefresh }) {
+  const navigate = useNavigate();
+  const editando = Boolean(turma);
+  const [nome, setNome] = useState(turma?.name ?? '');
+  const [ano, setAno] = useState(String(turma?.ano ?? '2026'));
+  const [turno, setTurno] = useState(turma?.turno ?? 'Manhã');
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -23,11 +28,19 @@ export function TurmaCadastroScreen({ go, onRefresh }) {
 
     setSaving(true);
     try {
-      const criada = await criarTurma({ nome: nome.trim(), ano: Number(ano), turno });
-      if (onRefresh) await onRefresh();
-      go('turma-detalhes', normalizeTurma(criada));
+      const dados = { nome: nome.trim(), ano: Number(ano), turno };
+      if (editando) {
+        await atualizarTurma(turma.id, dados);
+        if (onRefresh) await onRefresh();
+        // replace: o "voltar" não reabre o formulário já salvo. A tela da turma busca os dados atualizados.
+        navigate(rotas.turma(turma.id), { replace: true });
+      } else {
+        const criada = await criarTurma(dados);
+        if (onRefresh) await onRefresh();
+        navigate(rotas.turma(criada.id), { replace: true });
+      }
     } catch (error) {
-      window.alert(error.message || 'Não foi possível criar a turma.');
+      window.alert(error.message || (editando ? 'Não foi possível atualizar a turma.' : 'Não foi possível criar a turma.'));
       setSaving(false);
     }
   }
@@ -35,23 +48,25 @@ export function TurmaCadastroScreen({ go, onRefresh }) {
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => go('prof-turmas')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(editando ? rotas.turma(turma.id) : rotas.turmas)} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Cadastro</p>
-          <h1 className="text-lg font-bold text-gray-900 leading-tight">Nova Turma</h1>
+          <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>{editando ? 'Edição' : 'Cadastro'}</p>
+          <h1 className="text-lg font-bold text-gray-900 leading-tight">{editando ? 'Editar Turma' : 'Nova Turma'}</h1>
         </div>
         <div className="w-10 h-10" />
       </header>
 
       <div className="flex-1 p-6 space-y-6">
-        <div className="rounded-xl p-4 flex gap-3 border" style={{ background: `${C.yellow}33`, borderColor: `${C.yellow}88` }}>
-          <Info size={20} className="shrink-0" style={{ color: C.orange }} />
-          <p className="text-xs text-gray-700 font-medium leading-relaxed">
-            Crie a turma primeiro. Você poderá adicionar a lista de alunos (CSV ou manual) na próxima tela.
-          </p>
-        </div>
+        {!editando && (
+          <div className="rounded-xl p-4 flex gap-3 border" style={{ background: `${C.yellow}33`, borderColor: `${C.yellow}88` }}>
+            <Info size={20} className="shrink-0" style={{ color: C.orange }} />
+            <p className="text-xs text-gray-700 font-medium leading-relaxed">
+              Crie a turma primeiro. Você poderá adicionar a lista de alunos (CSV ou manual) na próxima tela.
+            </p>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-1">Nome de Identificação</label>
@@ -97,7 +112,7 @@ export function TurmaCadastroScreen({ go, onRefresh }) {
           </div>
         </div>
 
-        <OrangeBtn onClick={handleSave}>{saving ? 'Salvando...' : 'Salvar Turma'}</OrangeBtn>
+        <OrangeBtn onClick={handleSave}>{saving ? 'Salvando...' : editando ? 'Salvar Alterações' : 'Salvar Turma'}</OrangeBtn>
       </div>
     </MobileShell>
   );

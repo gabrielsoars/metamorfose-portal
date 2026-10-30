@@ -1,17 +1,25 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, X, Search, Edit2, UserPlus, Trash2, Save } from 'lucide-react';
 import { C, FALLBACK_ALUNOS } from '../../data/constants.js';
-import { atualizarAluno, criarAluno, listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
+import { atualizarAluno, criarAluno, excluirAluno, listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
+import { excluirTurma } from '../../services/turmasService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { ConfirmDialog } from '../../components/ConfirmDialog.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
-export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
+export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [list, setList] = useState(FALLBACK_ALUNOS);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
-  const [editMatricula, setEditMatricula] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [newAluno, setNewAluno] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  // Exclusão pendente de confirmação: { tipo: 'turma' } ou { tipo: 'aluno', aluno }.
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!turma || !turma.id) return;
@@ -40,7 +48,6 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
   function openEdit(aluno) {
     setEditingId(aluno.id);
     setEditName(aluno.name);
-    setEditMatricula(aluno.matricula);
   }
 
   async function saveEdit() {
@@ -48,7 +55,7 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
     try {
       await atualizarAluno(editingId, { nome: editName });
 
-      setList((l) => l.map((a) => a.id === editingId ? { ...a, name: editName, matricula: editMatricula || a.matricula, initial: editName.charAt(0).toUpperCase() } : a));
+      setList((l) => l.map((a) => a.id === editingId ? { ...a, name: editName, initial: editName.charAt(0).toUpperCase() } : a));
       setEditingId(null);
       if (onRefresh) await onRefresh();
     } catch (error) {
@@ -70,20 +77,78 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
     }
   }
 
+  async function confirmDelete() {
+    if (!pendingDelete || !turma) return;
+    setDeleting(true);
+    try {
+      if (pendingDelete.tipo === 'turma') {
+        await excluirTurma(turma.id);
+        if (onRefresh) await onRefresh();
+        navigate(rotas.turmas, { replace: true });
+        return;
+      }
+      await excluirAluno(pendingDelete.aluno.id);
+      setList((l) => l.filter((a) => a.id !== pendingDelete.aluno.id));
+      setPendingDelete(null);
+      if (onRefresh) await onRefresh();
+    } catch (error) {
+      setPendingDelete(null);
+      window.alert(error.message || (pendingDelete.tipo === 'turma' ? 'Não foi possível excluir a turma.' : 'Não foi possível excluir o aluno.'));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const confirmCopy = pendingDelete?.tipo === 'turma'
+    ? {
+      title: 'Excluir turma',
+      message: `Excluir a turma ${turma?.name}? Isso apaga ${list.length === 1 ? '1 aluno' : `${list.length} alunos`} e as respostas deles, e não pode ser desfeito.`,
+    }
+    : {
+      title: 'Excluir aluno',
+      message: `Excluir o aluno ${pendingDelete?.aluno?.name}? Isso apaga também as respostas dele em todos os simulados e não pode ser desfeito.`,
+    };
+
+  // Itens do menu ⋮ do cabeçalho. Novas ações entram aqui.
+  const menuItems = [
+    { key: 'editar', label: 'Editar turma', icon: Edit2, onClick: () => navigate(rotas.turmaEditar(turma.id)) },
+    { key: 'excluir', label: 'Excluir turma', icon: Trash2, danger: true, onClick: () => setPendingDelete({ tipo: 'turma' }) },
+  ];
+
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => go('prof-turmas')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.turmas)} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">
           <h1 className="text-lg font-bold text-gray-900 leading-tight truncate">{turma?.name || 'Turma'}</h1>
           <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: C.orange }}>{list.length} Alunos Matriculados</p>
         </div>
-        <button type="button" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" aria-label="Mais opções" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((value) => !value)} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
         </button>
       </header>
+
+      {menuOpen && (
+        <>
+          <div className="absolute inset-0 z-30" onClick={() => setMenuOpen(false)} />
+          <div role="menu" className="absolute right-4 top-24 z-40 min-w-[11rem] bg-white rounded-xl border border-gray-100 shadow-lg py-1">
+            {menuItems.map(({ key, label, icon: Icon, danger, onClick }) => (
+              <button
+                key={key}
+                type="button"
+                role="menuitem"
+                onClick={() => { setMenuOpen(false); onClick(); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-50 text-left ${danger ? 'text-red-600' : 'text-gray-800'}`}
+              >
+                <Icon size={16} style={danger ? undefined : { color: C.orange }} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="flex-1 overflow-y-auto p-6 space-y-5 pb-8" style={{ scrollbarWidth: 'none' }}>
         <button
@@ -134,7 +199,7 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
                 <button type="button" onClick={() => openEdit(aluno)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-orange-50 transition-colors" style={{ color: C.orange }}>
                   <Edit2 size={15} />
                 </button>
-                <button type="button" onClick={() => setList((l) => l.filter((a) => a.id !== aluno.id))} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50">
+                <button type="button" aria-label={`Excluir aluno ${aluno.name}`} onClick={() => setPendingDelete({ tipo: 'aluno', aluno })} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50">
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -142,6 +207,16 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
           ))}
         </div>
       </div>
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title={confirmCopy.title}
+          message={confirmCopy.message}
+          busy={deleting}
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
 
       {editingAluno && (
         <>
@@ -175,14 +250,15 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-1">Matrícula</label>
+                  {/* A API não guarda matrícula: o valor exibido é o id do aluno, então o campo é só leitura. */}
                   <input
                     type="text"
-                    value={editMatricula}
-                    onChange={(e) => setEditMatricula(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-gray-800 font-medium"
-                    onFocus={(e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; }}
-                    onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
+                    value={editingAluno.matricula}
+                    readOnly
+                    aria-readonly="true"
+                    className="w-full px-4 py-3 bg-gray-100 rounded-xl border border-gray-200 outline-none text-gray-500 font-medium cursor-not-allowed"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Gerada pelo sistema, não pode ser alterada.</p>
                 </div>
                 <OrangeBtn onClick={saveEdit}>
                   <Save size={18} /> Salvar Alterações

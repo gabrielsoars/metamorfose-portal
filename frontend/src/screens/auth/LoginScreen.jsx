@@ -1,8 +1,11 @@
 import { ArrowRight } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { MobileShell, OrangeBtn, Input } from '../../components/ui.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
-export function LoginScreen({ go }) {
+export function LoginScreen() {
+  const navigate = useNavigate();
   return (
     <MobileShell>
       <main className="flex flex-col h-full p-6 sm:p-8">
@@ -38,14 +41,14 @@ export function LoginScreen({ go }) {
             </div>
 
             <div className="pt-2 space-y-3">
-              <OrangeBtn onClick={() => go('prof-dashboard')}>
+              <OrangeBtn onClick={() => navigate(rotas.painel(), { replace: true })}>
                 Acessar Plataforma <ArrowRight size={20} />
               </OrangeBtn>
               <button
                 type="button"
                 className="w-full text-white font-bold py-3.5 rounded-xl shadow-md transition-all flex justify-center items-center gap-2"
                 style={{ background: '#1a1a2e' }}
-                onClick={() => go('admin-home')}
+                onClick={() => navigate(rotas.admin, { replace: true })}
               >
                 Entrar como Admin <ArrowRight size={20} />
               </button>
@@ -56,7 +59,7 @@ export function LoginScreen({ go }) {
         <div className="mt-8 text-center pb-4">
           <p className="text-gray-600 text-sm font-medium">
             Primeiro acesso?{' '}
-            <button type="button" className="font-bold hover:underline" style={{ color: C.orange }} onClick={() => go('ativacao')}>
+            <button type="button" className="font-bold hover:underline" style={{ color: C.orange }} onClick={() => navigate(rotas.ativacao)}>
               Ativar conta
             </button>
           </p>
