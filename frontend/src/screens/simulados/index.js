@@ -4,3 +4,4 @@ export { SimuladoEditarScreen } from './SimuladoEditarScreen.jsx';
 export { SimuladoPainelScreen } from './SimuladoPainelScreen.jsx';
 export { EscaneamentoScreen } from './EscaneamentoScreen.jsx';
 export { GabaritoScreen } from './GabaritoScreen.jsx';
+export { BoletimScreen } from './BoletimScreen.jsx';

@@ -7,7 +7,7 @@ import { listarAlunosDaTurma, normalizeAluno } from './services/alunosService.js
 import { LoginScreen, AtivacaoScreen } from './screens/auth/index.js';
 import { AdminHomeScreen, AdminGestaoScreen, AdminCadastroScreen } from './screens/admin/index.js';
 import { ProfDashboardScreen, TurmasScreen, TurmaDetalhesScreen, TurmaCadastroScreen, ProfPerfilScreen } from './screens/professor/index.js';
-import { SimuladosListaScreen, SimuladoCriarScreen, SimuladoEditarScreen, SimuladoPainelScreen, EscaneamentoScreen, GabaritoScreen } from './screens/simulados/index.js';
+import { SimuladosListaScreen, SimuladoCriarScreen, SimuladoEditarScreen, SimuladoPainelScreen, EscaneamentoScreen, GabaritoScreen, BoletimScreen } from './screens/simulados/index.js';
 export { normalizeUsuario } from './services/usuariosService.js';
 export { normalizeTurma } from './services/turmasService.js';
 export { normalizeAluno } from './services/alunosService.js';
@@ -16,10 +16,13 @@ export { normalizeAluno } from './services/alunosService.js';
 const NAV_STORAGE_KEY = 'metamorfose:nav';
 
 // Telas que trabalham sobre um simulado selecionado.
-const SIMULADO_SCREENS = ['simulado-painel', 'simulado-editar', 'simulado-gabarito', 'escaneamento'];
+const SIMULADO_SCREENS = ['simulado-painel', 'simulado-editar', 'simulado-gabarito', 'escaneamento', 'aluno-boletim'];
 
 // Telas que trabalham sobre uma turma selecionada.
 const TURMA_SCREENS = ['turma-detalhes', 'turma-editar'];
+
+// Telas que trabalham sobre um aluno selecionado (o payload do go é o aluno, não o simulado).
+const ALUNO_SCREENS = ['escaneamento', 'aluno-boletim'];
 
 function readSavedNav() {
   try {
@@ -86,7 +89,7 @@ export default function App() {
           setScreen('simulados-lista');
         } else {
           setSelectedSimulado(simulado);
-          if (savedNav.screen === 'escaneamento') {
+          if (ALUNO_SCREENS.includes(savedNav.screen)) {
             // O aluno não tem endpoint próprio: procura nos alunos das turmas do simulado.
             const porTurma = await Promise.all(
               simulado.turmas.map((t) => listarAlunosDaTurma(t.id).catch(() => [])),
@@ -106,7 +109,7 @@ export default function App() {
     (screen === 'admin-gestao' && !selectedProfessor) ||
     (TURMA_SCREENS.includes(screen) && !selectedTurma) ||
     (SIMULADO_SCREENS.includes(screen) && !selectedSimulado) ||
-    (screen === 'escaneamento' && !selectedAluno);
+    (ALUNO_SCREENS.includes(screen) && !selectedAluno);
 
   useEffect(() => {
     if (isRestoringSelection) return;
@@ -123,10 +126,10 @@ export default function App() {
     setSelectedProfessor(s === 'admin-gestao' ? payload : null);
     setSelectedTurma(TURMA_SCREENS.includes(s) ? payload : null);
     // O simulado continua selecionado enquanto a navegação fica entre as telas dele.
-    // No escaneamento o payload é o aluno, não o simulado.
+    // Nas telas de aluno o payload é o aluno, não o simulado.
     if (!SIMULADO_SCREENS.includes(s)) setSelectedSimulado(null);
-    else if (payload && s !== 'escaneamento') setSelectedSimulado(payload);
-    setSelectedAluno(s === 'escaneamento' ? payload : null);
+    else if (payload && !ALUNO_SCREENS.includes(s)) setSelectedSimulado(payload);
+    setSelectedAluno(ALUNO_SCREENS.includes(s) ? payload : null);
     setScreen(s);
   };
 
@@ -163,6 +166,8 @@ export default function App() {
       return <SimuladoPainelScreen go={go} simulado={selectedSimulado} />;
     case 'escaneamento':
       return <EscaneamentoScreen go={go} simulado={selectedSimulado} aluno={selectedAluno} />;
+    case 'aluno-boletim':
+      return <BoletimScreen go={go} simulado={selectedSimulado} aluno={selectedAluno} />;
     case 'simulado-gabarito':
       return <GabaritoScreen go={go} simulado={selectedSimulado} />;
     case 'prof-perfil':
