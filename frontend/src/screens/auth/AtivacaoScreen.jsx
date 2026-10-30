@@ -1,11 +1,46 @@
+import { useState } from 'react';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { MobileShell, OrangeBtn, Input } from '../../components/ui.jsx';
+import { reenviarAtivacao } from '../../services/authService.js';
+import { AuthField } from './AuthField.jsx';
+import { useCooldown } from './useCooldown.js';
 
-export function AtivacaoScreen({ go }) {
+const COOLDOWN_REENVIO_SEGUNDOS = 60;
+
+export function AtivacaoScreen({ go, email = '', onEmailChange = () => {} }) {
+  const [loading, setLoading] = useState(false);
+  const [aviso, setAviso] = useState('');
+  const [restante, setRestante] = useCooldown();
+
+  const reenviar = async () => {
+    if (loading || restante > 0) return;
+    const emailLimpo = email.trim();
+    if (!emailLimpo.includes('@')) {
+      window.alert('Informe o e-mail da sua conta para reenviar o código.');
+      return;
+    }
+    setLoading(true);
+    setAviso('');
+    try {
+      await reenviarAtivacao(emailLimpo);
+      setAviso('Se o e-mail estiver pendente de ativação, enviamos um novo código.');
+      setRestante(COOLDOWN_REENVIO_SEGUNDOS);
+    } catch (error) {
+      if (error.status === 429) {
+        window.alert('Muitos pedidos de código. Aguarde um minuto e tente novamente.');
+        setRestante(COOLDOWN_REENVIO_SEGUNDOS);
+      } else {
+        window.alert(error.message || 'Não foi possível reenviar o código.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <MobileShell>
-      <main className="flex flex-col h-full p-6 sm:p-8">
+      <main className="flex flex-col h-full p-6 sm:p-8 overflow-y-auto">
         <button
           type="button"
           onClick={() => go('login')}
@@ -21,6 +56,13 @@ export function AtivacaoScreen({ go }) {
           </p>
 
           <div className="space-y-5">
+            <AuthField
+              label="E-mail"
+              type="email"
+              placeholder="professor@unesp.br"
+              value={email}
+              onChange={(e) => onEmailChange(e.target.value)}
+            />
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-1">Código de Verificação</label>
               <input
@@ -45,9 +87,18 @@ export function AtivacaoScreen({ go }) {
         </div>
 
         <div className="mt-8 text-center pb-4">
+          {aviso && <p role="status" className="text-green-700 text-sm font-medium mb-2">{aviso}</p>}
           <p className="text-gray-600 text-sm font-medium">
             Não recebeu o código?{' '}
-            <button type="button" className="font-bold hover:underline" style={{ color: C.orange }}>Reenviar</button>
+            <button
+              type="button"
+              onClick={reenviar}
+              disabled={restante > 0}
+              className="font-bold hover:underline disabled:no-underline disabled:cursor-not-allowed"
+              style={{ color: restante > 0 ? '#9ca3af' : C.orange }}
+            >
+              {restante > 0 ? `Reenviar em ${restante}s` : 'Reenviar'}
+            </button>
           </p>
         </div>
       </main>

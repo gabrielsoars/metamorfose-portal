@@ -15,11 +15,19 @@ export async function requestJson(path, options = {}) {
     let detail = `Endpoint não disponível: ${path}`;
     try {
       const payload = await response.json();
-      detail = payload?.detail ? String(payload.detail) : detail;
+      // Em 422 o FastAPI devolve uma lista de { loc, msg, type }.
+      if (Array.isArray(payload?.detail)) {
+        const mensagens = payload.detail.map((item) => item?.msg ?? String(item)).filter(Boolean);
+        if (mensagens.length) detail = mensagens.join('; ');
+      } else if (payload?.detail) {
+        detail = String(payload.detail);
+      }
     } catch (error) {
       detail = detail;
     }
-    throw new Error(detail);
+    const error = new Error(detail);
+    error.status = response.status;
+    throw error;
   }
 
   if (response.status === 204) {

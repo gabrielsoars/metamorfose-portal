@@ -2,22 +2,26 @@
 API de leitura de gabaritos — FastAPI + OpenCV
 
 Endpoints:
-  POST /processar          → JSON com respostas detectadas
-  POST /processar/debug    → JSON + imagem anotada em base64
-  GET  /health             → status da API
+  POST /processar          → JSON com respostas detectadas   (requer JWT)
+  POST /processar/debug    → JSON + imagem anotada em base64 (requer JWT)
+  GET  /health             → status da API                   (público)
 """
 
+import logging
 import cv2
 import numpy as np
 import base64
 import io
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query
+from fastapi import Depends, FastAPI, File, UploadFile, HTTPException, Query
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 
+from .auth import obter_usuario_id
 from .gabarito import processar_gabarito
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="API de Gabaritos",
@@ -102,7 +106,8 @@ async def processar(
     arquivo: UploadFile = File(..., description="Imagem do gabarito (JPG, PNG, etc.)"),
     num_alternativas: int = Query(5, ge=2, le=10, description="Alternativas por questão (padrão: 5)"),
     limiar_marcado: float = Query(0.25, ge=0.1, le=0.9, description="Sensibilidade de detecção (0.1–0.9)"),
-    num_questoes: Optional[int] = Query(None, ge=1, description="Quantidade de questões da prova (padrão: todas do cartão)")
+    num_questoes: Optional[int] = Query(None, ge=1, description="Quantidade de questões da prova (padrão: todas do cartão)"),
+    usuario_id: int = Depends(obter_usuario_id),
 ):
     """
     Recebe a imagem do gabarito e retorna as respostas detectadas em JSON.
@@ -112,6 +117,7 @@ async def processar(
     - **limiar_marcado**: fração mínima de preenchimento para considerar marcada (padrão 0.25)
     - **num_questoes**: considera só as N primeiras questões do cartão
     """
+    logger.info("Processando gabarito para usuario_id=%s", usuario_id)
     imagem = carregar_imagem(arquivo)
     resultado = processar_gabarito(
         imagem,
@@ -142,13 +148,15 @@ async def processar_debug(
     arquivo: UploadFile = File(...),
     num_alternativas: int = Query(5, ge=2, le=10),
     limiar_marcado: float = Query(0.25, ge=0.1, le=0.9),
-    num_questoes: Optional[int] = Query(None, ge=1)
+    num_questoes: Optional[int] = Query(None, ge=1),
+    usuario_id: int = Depends(obter_usuario_id),
 ):
     """
     Igual a /processar, mas também retorna a imagem original com as bolhas
     detectadas desenhadas (círculos verdes = marcadas, cinza = vazias, vermelho = conflito).
     Útil para debugar gabaritos com baixa qualidade ou mal fotografados.
     """
+    logger.info("Processando gabarito para usuario_id=%s", usuario_id)
     imagem = carregar_imagem(arquivo)
     resultado = processar_gabarito(
         imagem,
