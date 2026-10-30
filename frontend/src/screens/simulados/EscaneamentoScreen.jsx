@@ -27,7 +27,7 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
 
     obterGabarito(simulado.id)
       .then((itens) => {
-        if (isMounted) setGabarito(Array.isArray(itens) ? itens : []);
+        if (isMounted) setGabarito((Array.isArray(itens) ? itens : []).filter((g) => g.num_questao <= simulado.total_questoes));
       })
       .catch((error) => {
         if (isMounted) window.alert(error.message || 'Não foi possível carregar o gabarito oficial.');
@@ -36,7 +36,7 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
     return () => {
       isMounted = false;
     };
-  }, [simulado.id]);
+  }, [simulado.id, simulado.total_questoes]);
 
   // Aluno já corrigido: carrega as respostas salvas (sem sobrescrever o que o scan já preencheu).
   useEffect(() => {
