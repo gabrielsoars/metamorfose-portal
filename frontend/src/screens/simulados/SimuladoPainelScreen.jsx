@@ -4,17 +4,20 @@ import { C } from '../../data/constants.js';
 import { excluirSimulado, listarAlunosDoSimulado, normalizeAlunoSimulado, montarRanking } from '../../services/simuladosService.js';
 import { MobileShell } from '../../components/ui.jsx';
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
 // Ações do menu ⋮ do cabeçalho. Para incluir outra, basta acrescentar um item aqui.
 const MENU_ACOES = [
-  { label: 'Editar simulado', icon: Edit2, screen: 'simulado-editar' },
+  { label: 'Editar simulado', icon: Edit2, rota: rotas.simuladoEditar },
   { label: 'Excluir simulado', icon: Trash2, excluir: true },
 ];
 
 // Média com no máximo uma casa decimal, em pt-BR (ex.: 7,5).
 const formatarNumero = (n) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
 
-export function SimuladoPainelScreen({ go, simulado }) {
+export function SimuladoPainelScreen({ simulado }) {
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -43,7 +46,7 @@ export function SimuladoPainelScreen({ go, simulado }) {
     setDeleting(true);
     try {
       await excluirSimulado(simulado.id);
-      go('simulados-lista');
+      navigate(rotas.simulados, { replace: true });
     } catch (error) {
       setConfirmDelete(false);
       window.alert(error.message || 'Não foi possível excluir o simulado.');
@@ -60,7 +63,7 @@ export function SimuladoPainelScreen({ go, simulado }) {
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => go('prof-dashboard')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.painel())} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">
@@ -87,7 +90,7 @@ export function SimuladoPainelScreen({ go, simulado }) {
                     key={acao.label}
                     type="button"
                     role="menuitem"
-                    onClick={() => { setMenuOpen(false); if (acao.excluir) setConfirmDelete(true); else go(acao.screen); }}
+                    onClick={() => { setMenuOpen(false); if (acao.excluir) setConfirmDelete(true); else navigate(acao.rota(simulado.id)); }}
                     className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm font-semibold hover:bg-gray-50 text-left ${acao.excluir ? 'text-red-600' : 'text-gray-700'}`}
                   >
                     <acao.icon size={16} /> {acao.label}
@@ -110,7 +113,7 @@ export function SimuladoPainelScreen({ go, simulado }) {
         <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mb-4">
           <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: C.orange }} />
         </div>
-        <button type="button" onClick={() => go('simulado-gabarito')} className="flex items-center gap-1.5 mb-3 text-xs font-bold hover:underline" style={{ color: C.orange }}>
+        <button type="button" onClick={() => navigate(rotas.simuladoGabarito(simulado.id))} className="flex items-center gap-1.5 mb-3 text-xs font-bold hover:underline" style={{ color: C.orange }}>
           <Edit2 size={14} /> Editar gabarito oficial
         </button>
         <div className="relative">
@@ -150,7 +153,7 @@ export function SimuladoPainelScreen({ go, simulado }) {
             <div className="flex items-center justify-between" style={{ marginLeft: aluno.corrected ? 8 : 0 }}>
               <div
                 className={`flex-1 ${aluno.corrected ? 'cursor-pointer text-left' : ''}`}
-                {...(aluno.corrected && { role: 'button', tabIndex: 0, 'aria-label': `Ver boletim de ${aluno.name}`, onClick: () => go('aluno-boletim', aluno), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go('aluno-boletim', aluno); } } })}
+                {...(aluno.corrected && { role: 'button', tabIndex: 0, 'aria-label': `Ver boletim de ${aluno.name}`, onClick: () => navigate(rotas.boletim(simulado.id, aluno.id)), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(rotas.boletim(simulado.id, aluno.id)); } } })}
               >
                 <h3 className="font-bold text-gray-900 text-sm">{aluno.name}</h3>
                 <div className="flex items-center gap-2 mt-1">
@@ -170,13 +173,13 @@ export function SimuladoPainelScreen({ go, simulado }) {
                 {aluno.corrected && <p className="text-[11px] font-bold mt-1.5" style={{ color: C.orange }}>Ver boletim</p>}
               </div>
               {aluno.corrected ? (
-                <button type="button" onClick={() => go('escaneamento', aluno)} aria-label={`Editar correção de ${aluno.name}`} className="w-9 h-9 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-500 hover:text-orange-500 hover:border-orange-300 transition-all">
+                <button type="button" onClick={() => navigate(rotas.correcao(simulado.id, aluno.id))} aria-label={`Editar correção de ${aluno.name}`} className="w-9 h-9 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-500 hover:text-orange-500 hover:border-orange-300 transition-all">
                   <Edit2 size={16} />
                 </button>
               ) : (
                 <button
                   type="button"
-                  onClick={() => go('escaneamento', aluno)}
+                  onClick={() => navigate(rotas.correcao(simulado.id, aluno.id))}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl border font-bold text-xs shadow-sm active:scale-95 transition-all hover:text-white"
                   style={{ background: C.light, color: C.orange, borderColor: `${C.orange}33` }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = C.orange; e.currentTarget.style.color = '#fff'; }}

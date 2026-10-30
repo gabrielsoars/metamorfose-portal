@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { ArrowLeft, Info, ChevronDown } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { atualizarTurma, criarTurma, normalizeTurma } from '../../services/turmasService.js';
+import { atualizarTurma, criarTurma } from '../../services/turmasService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
 const inputClass = 'w-full px-4 py-3 bg-white rounded-xl border border-gray-200 outline-none text-gray-800 font-medium';
 const onFocus = (e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; };
 const onBlur = (e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; };
 
 // Sem `turma` cadastra uma turma nova; com `turma` edita a turma existente.
-export function TurmaCadastroScreen({ go, turma, onRefresh }) {
+export function TurmaCadastroScreen({ turma, onRefresh }) {
+  const navigate = useNavigate();
   const editando = Boolean(turma);
   const [nome, setNome] = useState(turma?.name ?? '');
   const [ano, setAno] = useState(String(turma?.ano ?? '2026'));
@@ -27,14 +30,14 @@ export function TurmaCadastroScreen({ go, turma, onRefresh }) {
     try {
       const dados = { nome: nome.trim(), ano: Number(ano), turno };
       if (editando) {
-        const atualizada = await atualizarTurma(turma.id, dados);
+        await atualizarTurma(turma.id, dados);
         if (onRefresh) await onRefresh();
-        // A resposta do PATCH não traz a contagem de alunos: mantém a que a turma já tinha.
-        go('turma-detalhes', { ...normalizeTurma(atualizada), alunos: turma.alunos, empty: turma.empty });
+        // replace: o "voltar" não reabre o formulário já salvo. A tela da turma busca os dados atualizados.
+        navigate(rotas.turma(turma.id), { replace: true });
       } else {
         const criada = await criarTurma(dados);
         if (onRefresh) await onRefresh();
-        go('turma-detalhes', normalizeTurma(criada));
+        navigate(rotas.turma(criada.id), { replace: true });
       }
     } catch (error) {
       window.alert(error.message || (editando ? 'Não foi possível atualizar a turma.' : 'Não foi possível criar a turma.'));
@@ -45,7 +48,7 @@ export function TurmaCadastroScreen({ go, turma, onRefresh }) {
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => (editando ? go('turma-detalhes', turma) : go('prof-turmas'))} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(editando ? rotas.turma(turma.id) : rotas.turmas)} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">

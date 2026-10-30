@@ -5,13 +5,16 @@ import { obterGabarito, obterCorrecaoAluno, respostasSalvas, montarRespostas, sa
 import { processarGabarito } from '../../services/scanService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
 import { ImagePicker } from '../../components/ImagePicker.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
 const AVISO_STATUS = {
   sem_resposta: 'Atenção: Em branco ou rasura',
   multipla_marcacao: 'Atenção: Múltipla marcação',
 };
 
-export function EscaneamentoScreen({ go, simulado, aluno }) {
+export function EscaneamentoScreen({ simulado, aluno }) {
+  const navigate = useNavigate();
   // Respostas e status do scan, indexados pelo número da questão.
   const [answers, setAnswers] = useState({});
   const [statuses, setStatuses] = useState({});
@@ -106,7 +109,7 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
     setSaving(true);
     try {
       await salvarRespostasAluno(simulado.id, aluno.id, montarRespostas(gabarito, answers, total));
-      go('simulado-painel');
+      navigate(rotas.simulado(simulado.id), { replace: true });
     } catch (error) {
       window.alert(error.message || 'Não foi possível salvar a correção.');
       setSaving(false);
@@ -124,7 +127,7 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => go('simulado-painel')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.simulado(simulado.id))} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
           <X size={24} />
         </button>
         <div className="text-center flex-1 px-2">

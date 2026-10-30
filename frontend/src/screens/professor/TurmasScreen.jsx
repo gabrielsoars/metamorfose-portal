@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { Plus, Search, Users, ChevronRight } from 'lucide-react';
 import { C, FALLBACK_TURMAS } from '../../data/constants.js';
 import { MobileShell, BottomNav } from '../../components/ui.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
-export function TurmasScreen({ go, turmas, onRefresh }) {
+export function TurmasScreen({ turmas, onRefresh }) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const filtered = (turmas || FALLBACK_TURMAS).filter((t) => (t.name || '').toLowerCase().includes(search.toLowerCase()));
 
@@ -35,7 +38,7 @@ export function TurmasScreen({ go, turmas, onRefresh }) {
           <button
             key={turma.id}
             type="button"
-            onClick={() => go('turma-detalhes', turma)}
+            onClick={() => navigate(rotas.turma(turma.id))}
             className="w-full bg-white p-4 rounded-2xl shadow-sm border flex items-center gap-4 text-left transition-all hover:shadow-md"
             style={{ borderColor: turma.empty ? '#d1d5db' : '#f3f4f6', borderStyle: turma.empty ? 'dashed' : 'solid' }}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.orange)}
@@ -65,7 +68,7 @@ export function TurmasScreen({ go, turmas, onRefresh }) {
 
       <button
         type="button"
-        onClick={() => go('turma-cadastro')}
+        onClick={() => navigate(rotas.turmaNova)}
         className="absolute bottom-24 right-6 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
         style={{ background: C.orange }}
       >
@@ -73,9 +76,9 @@ export function TurmasScreen({ go, turmas, onRefresh }) {
       </button>
 
       <BottomNav active="turmas" onNav={(tab) => {
-        if (tab === 'dashboard') go('prof-dashboard');
-        else if (tab === 'simulados') go('simulados-lista');
-        else if (tab === 'perfil') go('prof-perfil');
+        if (tab === 'dashboard') navigate(rotas.painel());
+        else if (tab === 'simulados') navigate(rotas.simulados);
+        else if (tab === 'perfil') navigate(rotas.perfil);
       }} />
     </MobileShell>
   );

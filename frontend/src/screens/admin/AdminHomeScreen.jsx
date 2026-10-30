@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { Plus, Search, LogOut, Users, ChevronRight, ChevronDown } from 'lucide-react';
 import { C, FALLBACK_PROFESSORS } from '../../data/constants.js';
 import { MobileShell } from '../../components/ui.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
-export function AdminHomeScreen({ go, professors }) {
+export function AdminHomeScreen({ professors }) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [subject, setSubject] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -24,7 +27,7 @@ export function AdminHomeScreen({ go, professors }) {
         </div>
         <button
           type="button"
-          onClick={() => go('login')}
+          onClick={() => navigate(rotas.login, { replace: true })}
           className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors"
         >
           <LogOut size={20} />
@@ -87,7 +90,7 @@ export function AdminHomeScreen({ go, professors }) {
           <button
             key={prof.id}
             type="button"
-            onClick={() => go('admin-gestao', prof)}
+            onClick={() => navigate(rotas.professor(prof.id))}
             className="w-full bg-white p-4 rounded-2xl shadow-sm border flex items-center gap-4 text-left transition-all hover:shadow-md"
             style={{ borderColor: '#f3f4f6', opacity: prof.active ? 1 : 0.65 }}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.orange)}
@@ -116,7 +119,7 @@ export function AdminHomeScreen({ go, professors }) {
 
       <button
         type="button"
-        onClick={() => go('admin-cadastro')}
+        onClick={() => navigate(rotas.professorNovo)}
         className="absolute bottom-6 right-6 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
         style={{ background: C.orange }}
       >

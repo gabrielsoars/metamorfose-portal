@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SimuladoPainelScreen } from './SimuladoPainelScreen.jsx'
 import { EscaneamentoScreen } from './EscaneamentoScreen.jsx'
 import { montarRespostas, respostasSalvas } from '../../services/simuladosService.js'
+import { renderNaRota, urlAtual } from '../../test/rotas'
 
 const simulado = { id: 9, titulo: 'Simulado 1', total_questoes: 3, turmas: [{ id: 1, nome: 'Turma A' }] }
 const gabarito = [
@@ -41,10 +42,9 @@ describe('SimuladoPainelScreen', () => {
         { id: 2, nome: 'Bruno Lima', turma_id: 1, turma: 'Turma A', status: 'NÃO CORRIGIDO', nota: null },
       ],
     })))
-    const go = vi.fn()
     const user = userEvent.setup()
 
-    render(<SimuladoPainelScreen go={go} simulado={simulado} />)
+    const router = renderNaRota(<SimuladoPainelScreen simulado={simulado} />, { rota: '/simulados/9' })
 
     expect(await screen.findByText('Ana Souza')).toBeInTheDocument()
     expect(screen.getByText('Corrigido')).toBeInTheDocument()
@@ -54,7 +54,7 @@ describe('SimuladoPainelScreen', () => {
     expect(screen.getByText('50%')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /editar correção de ana souza/i }))
-    expect(go).toHaveBeenCalledWith('escaneamento', expect.objectContaining({ id: 1, name: 'Ana Souza' }))
+    expect(urlAtual(router)).toBe('/simulados/9/alunos/1/correcao')
   })
 })
 
@@ -79,17 +79,18 @@ describe('EscaneamentoScreen', () => {
       return { ok: false, status: 404, json: async () => ({}) }
     })
     vi.stubGlobal('fetch', fetchMock)
-    const go = vi.fn()
     const user = userEvent.setup()
 
-    render(<EscaneamentoScreen go={go} simulado={simulado} aluno={{ id: 1, name: 'Ana Souza' }} />)
+    const router = renderNaRota(<EscaneamentoScreen simulado={simulado} aluno={{ id: 1, name: 'Ana Souza' }} />, { rota: '/simulados/9/alunos/1/correcao' })
 
     await waitFor(() => expect(screen.getAllByRole('radio', { checked: true })).toHaveLength(2))
     await waitFor(() => expect(screen.getByText(/1 \/ 3/)).toBeInTheDocument())
 
     await user.click(screen.getByRole('button', { name: /concluir/i }))
 
-    await waitFor(() => expect(go).toHaveBeenCalledWith('simulado-painel'))
+    // Concluir substitui a correção pelo painel: o "voltar" não reabre o formulário salvo.
+    await waitFor(() => expect(urlAtual(router)).toBe('/simulados/9'))
+    expect(router.state.historyAction).toBe('REPLACE')
     const putCall = fetchMock.mock.calls.find(([url, o]) => String(url).endsWith('/alunos/1') && o?.method === 'PUT')
     expect(putCall).toBeTruthy()
     expect(JSON.parse(putCall[1].body)).toEqual({

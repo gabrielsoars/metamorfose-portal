@@ -4,6 +4,8 @@ import { C } from '../../data/constants.js';
 import { listarSimulados, carregarQuestoesComErro } from '../../services/simuladosService.js';
 import { listarTurmas } from '../../services/turmasService.js';
 import { MobileShell, BottomNav } from '../../components/ui.jsx';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { rotas, filtroDaUrl } from '../../routes/rotas.js';
 
 // Simulados que têm a turma (todos, se nenhuma turma estiver escolhida), do mais recente para o mais antigo.
 const simuladosDaTurma = (simulados, turmaId) =>
@@ -163,13 +165,15 @@ export function QuestoesErroLista({ q, limite }) {
   );
 }
 
-export function QuestoesErroScreen({ go, filtro }) {
-  const q = useQuestoesErro(filtro, (novo) => go('questoes-erro', novo));
+export function QuestoesErroScreen() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const q = useQuestoesErro(filtroDaUrl(searchParams), (novo) => navigate(rotas.questoesErro(novo), { replace: true }));
 
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center border-b border-gray-100">
-        <button type="button" onClick={() => go('prof-dashboard', q.filtro)} aria-label="Voltar" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.painel(q.filtro))} aria-label="Voltar" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="flex-1 px-2">
@@ -194,10 +198,10 @@ export function QuestoesErroScreen({ go, filtro }) {
       </div>
 
       <BottomNav active="dashboard" onNav={(tab) => {
-        if (tab === 'dashboard') go('prof-dashboard', q.filtro);
-        else if (tab === 'turmas') go('prof-turmas');
-        else if (tab === 'simulados') go('simulados-lista');
-        else if (tab === 'perfil') go('prof-perfil');
+        if (tab === 'dashboard') navigate(rotas.painel(q.filtro));
+        else if (tab === 'turmas') navigate(rotas.turmas);
+        else if (tab === 'simulados') navigate(rotas.simulados);
+        else if (tab === 'perfil') navigate(rotas.perfil);
       }} />
     </MobileShell>
   );

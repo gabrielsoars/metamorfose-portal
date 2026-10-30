@@ -1,9 +1,11 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProfDashboardScreen } from './ProfDashboardScreen.jsx'
 import { QuestoesErroScreen } from './QuestoesErroScreen.jsx'
 import { calcularQuestoesComErro } from '../../services/simuladosService.js'
-import { renderApp } from '../../test/rotas'
+import { renderApp, renderNaRota, urlAtual } from '../../test/rotas'
+
+const QUESTOES = { rota: '/painel/questoes-erro' }
 
 const det = (questao, correto, anulada = false) => ({ questao, correto, anulada, resposta_aluno: 'A', resposta_correta: 'B' })
 
@@ -90,7 +92,7 @@ describe('QuestoesErroScreen', () => {
 
   it('lista todas as questões do simulado mais recente ordenadas pelo percentual de erro', async () => {
     const fetchMock = mockApi()
-    render(<QuestoesErroScreen go={vi.fn()} filtro={null} />)
+    renderNaRota(<QuestoesErroScreen />, QUESTOES)
 
     expect(await screen.findByText('Questão 02')).toBeInTheDocument()
     // Questão 5 (anulada) fica de fora; só alunos corrigidos entram (3 chamadas de correção, Dani é pendente).
@@ -105,16 +107,16 @@ describe('QuestoesErroScreen', () => {
     expect(questoes).toEqual(['Questão 02', 'Questão 04', 'Questão 03', 'Questão 01'])
   })
 
-  it('trocar a turma recalcula só com os alunos da turma e avisa o App do novo filtro', async () => {
+  it('trocar a turma recalcula só com os alunos da turma e grava o filtro na URL', async () => {
     const fetchMock = mockApi()
-    const go = vi.fn()
     const user = userEvent.setup()
-    render(<QuestoesErroScreen go={go} filtro={null} />)
+    const router = renderNaRota(<QuestoesErroScreen />, QUESTOES)
     await screen.findByText('Questão 02')
 
     await user.selectOptions(screen.getByLabelText('Turma'), '20')
 
-    expect(go).toHaveBeenCalledWith('questoes-erro', { turmaId: '20', simuladoId: '2' })
+    expect(urlAtual(router)).toBe('/painel/questoes-erro?turma=20&simulado=2')
+    expect(router.state.historyAction).toBe('REPLACE')
     await waitFor(() => expect(screen.getByText('Baseado em 1 prova corrigida.')).toBeInTheDocument())
     expect(screen.getAllByText('0% erraram')).toHaveLength(4)
     expect(chamadasCorrecao(fetchMock).filter((u) => u.endsWith('/alunos/3'))).toHaveLength(2)
@@ -130,9 +132,9 @@ describe('QuestoesErroScreen', () => {
       },
     })
     const user = userEvent.setup()
-    render(<QuestoesErroScreen go={vi.fn()} filtro={{ turmaId: '10', simuladoId: '1' }} />)
+    renderNaRota(<QuestoesErroScreen />, { rota: '/painel/questoes-erro?turma=10&simulado=1' })
 
-    // Restaurado do filtro salvo: simulado 1, limitado a 2 questões.
+    // Filtro lido da URL: simulado 1, limitado a 2 questões.
     await screen.findByText('Questão 02')
     expect(screen.queryByText('Questão 03')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Simulado')).toHaveValue('1')
@@ -144,7 +146,7 @@ describe('QuestoesErroScreen', () => {
 
   it('mostra estado vazio quando o simulado não tem correções', async () => {
     mockApi({ alunosPorSimulado: { 2: { total: 1, alunos: [alunosSimulado2.alunos[3]] } } })
-    render(<QuestoesErroScreen go={vi.fn()} filtro={null} />)
+    renderNaRota(<QuestoesErroScreen />, QUESTOES)
 
     expect(await screen.findByText('Nenhuma prova corrigida neste simulado ainda.')).toBeInTheDocument()
     expect(screen.queryByText(/erraram/)).not.toBeInTheDocument()
@@ -152,7 +154,7 @@ describe('QuestoesErroScreen', () => {
 
   it('mostra estado vazio quando não há simulados', async () => {
     mockApi({ simuladosApi: [] })
-    render(<QuestoesErroScreen go={vi.fn()} filtro={null} />)
+    renderNaRota(<QuestoesErroScreen />, QUESTOES)
 
     expect(await screen.findByText('Nenhum simulado cadastrado ainda.')).toBeInTheDocument()
     expect(screen.getByLabelText('Simulado')).toBeDisabled()
@@ -164,9 +166,8 @@ describe('ProfDashboardScreen', () => {
 
   it('mostra as 3 piores questões reais e abre a tela completa com o mesmo filtro', async () => {
     mockApi()
-    const go = vi.fn()
     const user = userEvent.setup()
-    render(<ProfDashboardScreen go={go} filtro={null} />)
+    const router = renderNaRota(<ProfDashboardScreen />, { rota: '/painel' })
 
     expect(await screen.findByText('Questão 02')).toBeInTheDocument()
     expect(screen.getAllByText(/% erraram/)).toHaveLength(3)
@@ -177,13 +178,17 @@ describe('ProfDashboardScreen', () => {
     expect(screen.queryByText('Extensivo Noturno')).not.toBeInTheDocument()
 
     await user.selectOptions(screen.getByLabelText('Turma'), '10')
+    // O filtro do dashboard também fica na URL (sobrevive ao F5).
+    expect(urlAtual(router)).toBe('/painel?turma=10&simulado=2')
+    expect(router.state.historyAction).toBe('REPLACE')
     await user.click(screen.getByRole('button', { name: /ver todas/i }))
-    expect(go).toHaveBeenCalledWith('questoes-erro', { turmaId: '10', simuladoId: '2' })
+    expect(urlAtual(router)).toBe('/painel/questoes-erro?turma=10&simulado=2')
+    expect(router.state.historyAction).toBe('PUSH')
   })
 
   it('mostra estado vazio e bloqueia "Ver todas" sem simulados', async () => {
     mockApi({ simuladosApi: [], turmasApi: [] })
-    render(<ProfDashboardScreen go={vi.fn()} filtro={null} />)
+    renderNaRota(<ProfDashboardScreen />, { rota: '/painel' })
 
     expect(await screen.findByText('Nenhum simulado cadastrado ainda.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /ver todas/i })).toBeDisabled()

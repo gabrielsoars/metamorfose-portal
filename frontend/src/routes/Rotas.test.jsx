@@ -1,4 +1,6 @@
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { BrowserRouter } from 'react-router-dom'
+import App from '../App'
 import userEvent from '@testing-library/user-event'
 import { renderApp, urlAtual } from '../test/rotas'
 
@@ -19,23 +21,30 @@ const gabarito = [
 
 let turma
 let corrigido
+let excluidos
 
 function mockApi() {
   turma = { id: 3, nome: 'Extensivo Noturno', ano: 2026, turno: 'Noite' }
   corrigido = false
+  excluidos = new Set()
   const fetchMock = vi.fn(async (input, options = {}) => {
     const url = String(input).replace('http://localhost:8000', '')
     const method = (options.method || 'GET').toUpperCase()
+    if (method === 'DELETE' && (url === '/turmas/3' || url === '/simulados/9')) {
+      excluidos.add(url)
+      return json(null, 204)
+    }
+    if (excluidos.has(url)) return json({ detail: 'Não encontrado.' }, 404)
     if (url === '/usuarios') return json([{ id: 7, nome: 'Ana Paula', email: 'ana@email.com', materia: 'Física', tipo: 1, ativo: true }])
     if (url === '/usuarios/7') return json({ id: 7, nome: 'Ana Paula', email: 'ana@email.com', materia: 'Física', tipo: 1, ativo: true })
-    if (url === '/turmas') return json([turma])
+    if (url === '/turmas') return json(excluidos.has('/turmas/3') ? [] : [turma])
     if (url === '/turmas/3' && method === 'GET') return json(turma)
     if (url === '/turmas/3' && method === 'PATCH') {
       turma = { ...turma, ...JSON.parse(options.body) }
       return json(turma)
     }
     if (url === '/turmas/3/alunos') return json([{ id: 10, nome: 'Bruno', turma_id: 3 }])
-    if (url === '/simulados') return json([simulado])
+    if (url === '/simulados') return json(excluidos.has('/simulados/9') ? [] : [simulado])
     if (url === '/simulados/9') return json(simulado)
     if (url === '/simulados/9/gabarito') return json(gabarito)
     if (url === '/simulados/9/alunos') {
@@ -167,16 +176,233 @@ describe('rotas: voltar e avançar', () => {
   })
 })
 
-describe('rotas: endereço sem tela', () => {
-  it('turma inexistente volta para a lista de turmas', async () => {
-    const router = renderApp('/turmas/99')
+describe('rotas: regras de histórico', () => {
+  it('Fluxo A: login → turmas → turma → editar → salvar; voltar leva à turma, depois à lista; avançar refaz o caminho', async () => {
+    const user = userEvent.setup()
+    const router = renderApp('/login')
+
+    await user.click(await screen.findByRole('button', { name: /acessar plataforma/i }))
+    expect(await screen.findByRole('heading', { name: 'Olá, Prof. Pedro' })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/painel')
+    expect(router.state.historyAction).toBe('REPLACE')
+
+    await user.click(screen.getByRole('button', { name: 'Turmas' }))
+    await screen.findByRole('heading', { name: 'Minhas Turmas' })
+    await waitFor(() => expect(screen.queryByText('Intensivo Sábado')).not.toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Extensivo Noturno/ }))
+    await screen.findByText(/Alunos Matriculados/)
+    await user.click(screen.getByRole('button', { name: /mais opções/i }))
+    await user.click(screen.getByRole('menuitem', { name: /editar turma/i }))
+    expect(urlAtual(router)).toBe('/turmas/3/editar')
+
+    const nome = await screen.findByDisplayValue('Extensivo Noturno')
+    await user.clear(nome)
+    await user.type(nome, 'Extensivo Matutino')
+    await user.click(screen.getByRole('button', { name: /salvar alterações/i }))
+
+    expect(await screen.findByRole('heading', { name: 'Extensivo Matutino' })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/turmas/3')
+    expect(router.state.historyAction).toBe('REPLACE')
+    expect(document.title).toBe('Turma Extensivo Matutino · Metamorfose')
+
+    // Voltar leva à turma (não ao formulário salvo)...
+    await voltar(router)
+    expect(urlAtual(router)).toBe('/turmas/3')
+    expect(screen.getByText(/Alunos Matriculados/)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Editar Turma' })).not.toBeInTheDocument()
+
+    // ...voltar de novo leva à lista...
+    await voltar(router)
     expect(await screen.findByRole('heading', { name: 'Minhas Turmas' })).toBeInTheDocument()
     expect(urlAtual(router)).toBe('/turmas')
+
+    // ...e, como o login foi substituído, o histórico não volta para ele.
+    await voltar(router)
+    await voltar(router)
+    expect(urlAtual(router)).toBe('/painel')
+
+    // Avançar refaz o caminho e termina na turma, nunca no formulário.
+    await avancar(router)
+    expect(urlAtual(router)).toBe('/turmas')
+    await avancar(router)
+    await avancar(router)
+    await avancar(router)
+    expect(urlAtual(router)).toBe('/turmas/3')
+    expect(await screen.findByRole('heading', { name: 'Extensivo Matutino' })).toBeInTheDocument()
   })
 
-  it('URL desconhecida cai no login', async () => {
-    const router = renderApp('/nao-existe')
+  it('Fluxo B: simulados → simulado → escanear → Concluir; voltar leva ao painel com o aluno corrigido', async () => {
+    const user = userEvent.setup()
+    const router = renderApp('/simulados')
+
+    await user.click(await screen.findByRole('button', { name: /1º Simulado ENEM/ }))
+    expect(await screen.findByText('0 de 1 provas corrigidas')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /escanear/i }))
+    expect(await screen.findByText('Aluno em Correção')).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/simulados/9/alunos/10/correcao')
+
+    await waitFor(() => expect(screen.getByText(/0 \/ 3/)).toBeInTheDocument())
+    await user.click(screen.getAllByRole('radio', { name: 'A' })[0])
+    await user.click(screen.getByRole('button', { name: /concluir/i }))
+
+    expect(await screen.findByText('1 de 1 provas corrigidas')).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/simulados/9')
+    expect(router.state.historyAction).toBe('REPLACE')
+
+    await voltar(router)
+    expect(urlAtual(router)).toBe('/simulados/9')
+    expect(screen.getByText('Corrigido')).toBeInTheDocument()
+    expect(screen.queryByText('Aluno em Correção')).not.toBeInTheDocument()
+
+    await voltar(router)
+    expect(await screen.findByRole('heading', { name: 'Meus Simulados' })).toBeInTheDocument()
+  })
+
+  it('Fluxo C: excluir a turma volta para a lista e o voltar não reabre a turma excluída', async () => {
+    const user = userEvent.setup()
+    const router = renderApp('/turmas')
+
+    await waitFor(() => expect(screen.queryByText('Intensivo Sábado')).not.toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Extensivo Noturno/ }))
+    await screen.findByText('Bruno')
+    await user.click(screen.getByRole('button', { name: /mais opções/i }))
+    await user.click(screen.getByRole('menuitem', { name: /excluir turma/i }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }))
+
+    expect(await screen.findByRole('heading', { name: 'Minhas Turmas' })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/turmas')
+    expect(router.state.historyAction).toBe('REPLACE')
+
+    await voltar(router)
+    expect(urlAtual(router)).toBe('/turmas')
+    expect(screen.queryByText(/Alunos Matriculados/)).not.toBeInTheDocument()
+  })
+
+  it('Fluxo C: excluir o simulado volta para a lista e o voltar não reabre o simulado excluído', async () => {
+    const user = userEvent.setup()
+    const router = renderApp('/simulados')
+
+    await user.click(await screen.findByRole('button', { name: /1º Simulado ENEM/ }))
+    await user.click(await screen.findByRole('button', { name: /mais opções/i }))
+    await user.click(screen.getByRole('menuitem', { name: /excluir simulado/i }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }))
+
+    expect(await screen.findByText('Nenhum simulado cadastrado')).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/simulados')
+    expect(router.state.historyAction).toBe('REPLACE')
+
+    await voltar(router)
+    expect(urlAtual(router)).toBe('/simulados')
+  })
+
+  it('salvar o gabarito substitui o formulário pelo painel', async () => {
+    const user = userEvent.setup()
+    const router = renderApp('/simulados/9/gabarito')
+
+    await waitFor(() => expect(screen.getAllByRole('radio', { checked: true })).toHaveLength(3))
+    await user.click(screen.getByRole('button', { name: /salvar gabarito oficial/i }))
+
+    await waitFor(() => expect(urlAtual(router)).toBe('/simulados/9'))
+    expect(router.state.historyAction).toBe('REPLACE')
+  })
+
+  it('Sair substitui a tela atual pelo login', async () => {
+    const user = userEvent.setup()
+    const router = renderApp('/perfil')
+
+    await user.click(await screen.findByRole('button', { name: /sair da conta/i }))
+
     expect(await screen.findByRole('heading', { name: 'Metamorfose' })).toBeInTheDocument()
     expect(urlAtual(router)).toBe('/login')
+    expect(router.state.historyAction).toBe('REPLACE')
+  })
+
+  it('F5 no dashboard mantém o filtro da URL', async () => {
+    renderApp('/painel?turma=3&simulado=9')
+
+    await waitFor(() => expect(screen.getByLabelText('Turma')).toHaveValue('3'))
+    expect(screen.getByLabelText('Simulado')).toHaveValue('9')
+  })
+})
+
+describe('rotas: título da aba', () => {
+  it.each([
+    ['/login', 'Entrar · Metamorfose'],
+    ['/turmas', 'Minhas turmas · Metamorfose'],
+    ['/turmas/3', 'Turma Extensivo Noturno · Metamorfose'],
+    ['/simulados/9', '1º Simulado ENEM · Metamorfose'],
+    ['/simulados/9/alunos/10/boletim', 'Boletim de Bruno · Metamorfose'],
+    ['/nao-existe', 'Página não encontrada · Metamorfose'],
+  ])('%s → "%s"', async (url, titulo) => {
+    renderApp(url)
+    await waitFor(() => expect(document.title).toBe(titulo))
+  })
+})
+
+describe('rotas: não encontrado', () => {
+  it('URL desconhecida mostra "Página não encontrada" com link para o início', async () => {
+    const user = userEvent.setup()
+    const router = renderApp('/nao-existe')
+
+    expect(await screen.findByRole('heading', { name: 'Página não encontrada' })).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Ir para o início' }))
+
+    expect(await screen.findByRole('heading', { name: 'Metamorfose' })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/login')
+  })
+
+  it.each([
+    ['/turmas/99', 'Turma não encontrada', 'Voltar para as turmas', '/turmas'],
+    ['/turmas/abc/editar', 'Turma não encontrada', 'Voltar para as turmas', '/turmas'],
+    ['/simulados/99/gabarito', 'Simulado não encontrado', 'Voltar para os simulados', '/simulados'],
+    ['/simulados/9/alunos/99/boletim', 'Aluno não encontrado', 'Voltar para o simulado', '/simulados/9'],
+    ['/admin/professores/99', 'Professor não encontrado', 'Voltar para os usuários', '/admin'],
+  ])('%s mostra "%s" com link de volta', async (url, titulo, link, destino) => {
+    const user = userEvent.setup()
+    const router = renderApp(url)
+
+    expect(await screen.findByRole('heading', { name: titulo })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe(url)
+
+    await user.click(screen.getByRole('link', { name: link }))
+    await waitFor(() => expect(urlAtual(router)).toBe(destino))
+  })
+
+  it('falha de rede ao carregar o registro mostra o erro, sem tela em branco', async () => {
+    global.fetch.mockImplementation(async () => {
+      throw new TypeError('Failed to fetch')
+    })
+    renderApp('/turmas/3')
+
+    expect(await screen.findByRole('heading', { name: 'Não foi possível carregar a turma' })).toBeInTheDocument()
+    expect(screen.getByText('Failed to fetch')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Voltar para as turmas' })).toBeInTheDocument()
+  })
+})
+
+describe('histórico do navegador (History API)', () => {
+  afterEach(() => window.history.replaceState(null, '', '/'))
+
+  it('o voltar e o avançar do navegador trocam de tela dentro do app', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/turmas')
+    render(
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <App />
+      </BrowserRouter>,
+    )
+
+    await waitFor(() => expect(screen.queryByText('Intensivo Sábado')).not.toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: /Extensivo Noturno/ }))
+    expect(await screen.findByText(/Alunos Matriculados/)).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/turmas/3')
+
+    act(() => window.history.back())
+    expect(await screen.findByRole('heading', { name: 'Minhas Turmas' })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/turmas')
+
+    act(() => window.history.forward())
+    expect(await screen.findByText(/Alunos Matriculados/)).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/turmas/3')
   })
 })

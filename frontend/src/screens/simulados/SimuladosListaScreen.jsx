@@ -3,11 +3,14 @@ import { Plus, Search, ChevronRight, FileText, SlidersHorizontal, Calendar } fro
 import { C } from '../../data/constants.js';
 import { listarSimulados } from '../../services/simuladosService.js';
 import { MobileShell, BottomNav } from '../../components/ui.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
 // A API devolve "YYYY-MM-DD". new Date() interpretaria como UTC e mostraria um dia antes no Brasil.
 const formatarData = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
 
-export function SimuladosListaScreen({ go }) {
+export function SimuladosListaScreen() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [simulados, setSimulados] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +72,7 @@ export function SimuladosListaScreen({ go }) {
           <button
             key={sim.id}
             type="button"
-            onClick={() => go('simulado-painel', sim)}
+            onClick={() => navigate(rotas.simulado(sim.id))}
             className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4 text-left group transition-all hover:shadow-md"
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.orange)}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#f3f4f6')}
@@ -103,7 +106,7 @@ export function SimuladosListaScreen({ go }) {
 
       <button
         type="button"
-        onClick={() => go('simulado-criar')}
+        onClick={() => navigate(rotas.simuladoNovo)}
         className="absolute bottom-24 right-6 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
         style={{ background: C.orange }}
       >
@@ -111,9 +114,9 @@ export function SimuladosListaScreen({ go }) {
       </button>
 
       <BottomNav active="simulados" onNav={(tab) => {
-        if (tab === 'dashboard') go('prof-dashboard');
-        else if (tab === 'turmas') go('prof-turmas');
-        else if (tab === 'perfil') go('prof-perfil');
+        if (tab === 'dashboard') navigate(rotas.painel());
+        else if (tab === 'turmas') navigate(rotas.turmas);
+        else if (tab === 'perfil') navigate(rotas.perfil);
       }} />
     </MobileShell>
   );

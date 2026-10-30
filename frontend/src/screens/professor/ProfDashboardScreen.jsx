@@ -2,9 +2,14 @@ import { LogOut, Bell, TrendingUp } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { MobileShell, BottomNav } from '../../components/ui.jsx';
 import { useQuestoesErro, FiltrosQuestoes, QuestoesErroLista } from './QuestoesErroScreen.jsx';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { rotas, filtroDaUrl } from '../../routes/rotas.js';
 
-export function ProfDashboardScreen({ go, filtro }) {
-  const questoes = useQuestoesErro(filtro);
+export function ProfDashboardScreen() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // O filtro fica na URL (?turma=&simulado=): sobrevive ao F5 e ao voltar. Trocar o filtro substitui a entrada.
+  const questoes = useQuestoesErro(filtroDaUrl(searchParams), (novo) => navigate(rotas.painel(novo), { replace: true }));
 
   const bars = [
     { month: 'Mar', pct: 45, height: 48 },
@@ -32,7 +37,7 @@ export function ProfDashboardScreen({ go, filtro }) {
           </button>
           <button
             type="button"
-            onClick={() => go('login')}
+            onClick={() => navigate(rotas.login, { replace: true })}
             className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
             title="Sair"
           >
@@ -63,7 +68,7 @@ export function ProfDashboardScreen({ go, filtro }) {
             <h3 className="font-bold text-gray-900 text-sm">Atenção: Alto índice de erro</h3>
             <button
               type="button"
-              onClick={() => go('questoes-erro', questoes.filtro)}
+              onClick={() => navigate(rotas.questoesErro(questoes.filtro))}
               disabled={!questoes.simulado}
               className="text-[10px] font-bold uppercase hover:underline disabled:opacity-40 disabled:no-underline"
               style={{ color: C.orange }}
@@ -89,9 +94,9 @@ export function ProfDashboardScreen({ go, filtro }) {
       </div>
 
       <BottomNav active="dashboard" onNav={(tab) => {
-        if (tab === 'turmas') go('prof-turmas');
-        else if (tab === 'simulados') go('simulados-lista');
-        else if (tab === 'perfil') go('prof-perfil');
+        if (tab === 'turmas') navigate(rotas.turmas);
+        else if (tab === 'simulados') navigate(rotas.simulados);
+        else if (tab === 'perfil') navigate(rotas.perfil);
       }} />
     </MobileShell>
   );

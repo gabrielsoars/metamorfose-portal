@@ -3,8 +3,11 @@ import { ArrowLeft, Check, X, Ban, Clock, Camera } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { obterCorrecaoAluno } from '../../services/simuladosService.js';
 import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
-export function BoletimScreen({ go, simulado, aluno }) {
+export function BoletimScreen({ simulado, aluno }) {
+  const navigate = useNavigate();
   // undefined = carregando; depois o retorno de GET /simulados/{id}/alunos/{aluno_id}.
   const [correcao, setCorrecao] = useState(undefined);
 
@@ -37,7 +40,7 @@ export function BoletimScreen({ go, simulado, aluno }) {
   return (
     <MobileShell>
       <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => go('simulado-painel')} aria-label="Voltar ao painel" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.simulado(simulado.id))} aria-label="Voltar ao painel" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">
@@ -62,7 +65,7 @@ export function BoletimScreen({ go, simulado, aluno }) {
           </div>
           <h2 className="text-base font-bold text-gray-900">Ainda não corrigido</h2>
           <p className="text-sm text-gray-500">Este aluno ainda não tem correção salva neste simulado.</p>
-          <OrangeBtn onClick={() => go('escaneamento', aluno)} className="mt-2">
+          <OrangeBtn onClick={() => navigate(rotas.correcao(simulado.id, aluno.id))} className="mt-2">
             <Camera size={18} /> Escanear
           </OrangeBtn>
         </div>
