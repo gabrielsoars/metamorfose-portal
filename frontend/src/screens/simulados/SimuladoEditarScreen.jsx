@@ -45,6 +45,10 @@ export function SimuladoEditarScreen({ go, simulado, turmas = [] }) {
       window.alert('Preencha o título, a data e o número de questões.');
       return;
     }
+    if (selectedTurmas.length === 0) {
+      window.alert('Selecione ao menos uma turma para o simulado.');
+      return;
+    }
 
     setSaving(true);
     try {

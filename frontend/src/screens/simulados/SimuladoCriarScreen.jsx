@@ -25,6 +25,10 @@ export function SimuladoCriarScreen({ go, turmas = [] }) {
       window.alert('Preencha o título, a data e o número de questões.');
       return;
     }
+    if (selectedTurmas.length === 0) {
+      window.alert('Selecione ao menos uma turma para cadastrar o simulado.');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -61,8 +65,9 @@ export function SimuladoCriarScreen({ go, turmas = [] }) {
             Dados da Prova
           </h2>
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-1">Título do Simulado</label>
+            <label htmlFor="criar-simulado-titulo" className="block text-sm font-semibold text-gray-900 mb-1">Título do Simulado</label>
             <input
+              id="criar-simulado-titulo"
               type="text"
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
@@ -74,8 +79,9 @@ export function SimuladoCriarScreen({ go, turmas = [] }) {
           </div>
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-sm font-semibold text-gray-900 mb-1">Data de Aplicação</label>
+              <label htmlFor="criar-simulado-data" className="block text-sm font-semibold text-gray-900 mb-1">Data de Aplicação</label>
               <input
+                id="criar-simulado-data"
                 type="date"
                 value={data}
                 onChange={(e) => setData(e.target.value)}
@@ -85,8 +91,9 @@ export function SimuladoCriarScreen({ go, turmas = [] }) {
               />
             </div>
             <div className="w-28">
-              <label className="block text-sm font-semibold text-gray-900 mb-1">Questões</label>
+              <label htmlFor="criar-simulado-questoes" className="block text-sm font-semibold text-gray-900 mb-1">Questões</label>
               <input
+                id="criar-simulado-questoes"
                 type="number"
                 min="1"
                 value={totalQuestoes}
@@ -119,6 +126,7 @@ export function SimuladoCriarScreen({ go, turmas = [] }) {
                 <button
                   key={turma.id}
                   type="button"
+                  aria-pressed={checked}
                   onClick={() => toggleTurma(turma.id)}
                   className="w-full p-4 rounded-xl flex items-center justify-between transition-all border-2"
                   style={{ background: checked ? C.light : '#fff', borderColor: checked ? C.orange : '#f3f4f6' }}

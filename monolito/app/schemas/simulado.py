@@ -11,7 +11,11 @@ class SimuladoBase(BaseModel):
     total_questoes: int
 
 class SimuladoCreate(SimuladoBase):
-    turmas_ids: list[int] = []
+    turmas_ids: list[int] = Field(
+        ...,
+        min_length=1,
+        description="IDs das turmas participantes (ao menos uma).",
+    )
 
 class GabaritoBase(BaseModel):
     num_questao: int = Field(..., ge=1, description="Número da questão")
@@ -57,7 +61,18 @@ class SimuladoUpdate(BaseModel):
     titulo: Optional[str] = None
     data_aplicacao: Optional[date] = None
     total_questoes: Optional[int] = None
-    turmas_ids: Optional[list[int]] = None
+    turmas_ids: Optional[list[int]] = Field(
+        None,
+        min_length=1,
+        description="IDs das turmas participantes (ao menos uma).",
+    )
+
+    @field_validator("turmas_ids")
+    @classmethod
+    def validar_turmas_ids(cls, v: Optional[list[int]]) -> list[int]:
+        if not v:
+            raise ValueError("Selecione ao menos uma turma para o simulado.")
+        return v
 
 STATUS_CORRIGIDO = "CORRIGIDO"
 STATUS_NAO_CORRIGIDO = "NÃO CORRIGIDO"

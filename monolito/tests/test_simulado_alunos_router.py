@@ -1,3 +1,7 @@
+import pytest
+
+from app.services import simulado_service
+
 STATUS_CORRIGIDO = "CORRIGIDO"
 STATUS_NAO_CORRIGIDO = "NÃO CORRIGIDO"
 
@@ -57,6 +61,41 @@ def _cenario(client):
 
 
 # --------------------------------------------------------------------------- #
+# POST / PATCH /simulados (obrigatoriedade de turmas)
+# --------------------------------------------------------------------------- #
+
+def test_criar_simulado_sem_turmas_retorna_422(client):
+    base = {
+        "titulo": "1º Simulado ENEM",
+        "data_aplicacao": "2026-09-10",
+        "total_questoes": 5,
+    }
+    assert client.post("/simulados", json=base).status_code == 422
+    assert client.post("/simulados", json={**base, "turmas_ids": []}).status_code == 422
+    assert client.post("/simulados", json={**base, "turmas_ids": None}).status_code == 422
+    assert client.get("/simulados").json() == []
+
+
+def test_atualizar_simulado_sem_turmas_retorna_422_e_preserva_vinculo(client):
+    turma = _criar_turma(client)
+    simulado_id = _criar_simulado(client, [turma])
+
+    assert client.patch(f"/simulados/{simulado_id}", json={"turmas_ids": []}).status_code == 422
+    assert client.patch(f"/simulados/{simulado_id}", json={"turmas_ids": None}).status_code == 422
+
+    # PATCH parcial sem turmas_ids continua permitido e preserva as turmas atuais
+    res = client.patch(f"/simulados/{simulado_id}", json={"titulo": "Título Atualizado"})
+    assert res.status_code == 200
+    assert res.json()["titulo"] == "Título Atualizado"
+    assert [t["id"] for t in res.json()["turmas"]] == [turma]
+
+
+def test_servico_rejeita_lista_vazia_de_turmas(db_session):
+    with pytest.raises(simulado_service.TurmaNaoInformada):
+        simulado_service._validar_e_buscar_turmas(db_session, [])
+
+
+# --------------------------------------------------------------------------- #
 # GET /simulados/{id}/alunos
 # --------------------------------------------------------------------------- #
 
@@ -65,8 +104,9 @@ def test_listar_alunos_simulado_inexistente(client):
     assert res.status_code == 404
 
 
-def test_listar_alunos_simulado_sem_turmas(client):
-    simulado_id = _criar_simulado(client, [])
+def test_listar_alunos_simulado_turma_sem_alunos(client):
+    turma = _criar_turma(client)
+    simulado_id = _criar_simulado(client, [turma])
     res = client.get(f"/simulados/{simulado_id}/alunos")
     assert res.status_code == 200
     assert res.json() == {"total": 0, "alunos": []}

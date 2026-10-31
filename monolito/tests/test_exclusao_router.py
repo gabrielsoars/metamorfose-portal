@@ -74,10 +74,12 @@ def test_excluir_simulado_apaga_gabarito_e_respostas_mas_preserva_turma_e_aluno(
     assert client.get(f"/alunos/{aluno}").status_code == 200
 
 
-def test_excluir_simulado_sem_gabarito_nem_turmas(client):
-    simulado = _criar_simulado(client, [])
+def test_excluir_simulado_sem_gabarito(client):
+    turma = _criar_turma(client)
+    simulado = _criar_simulado(client, [turma])
     assert client.delete(f"/simulados/{simulado}").status_code == 204
     assert client.get("/simulados").json() == []
+    assert client.get(f"/turmas/{turma}").status_code == 200
 
 
 # --------------------------------------------------------------------------- #
@@ -139,18 +141,20 @@ def test_excluir_turma_sem_simulados_apaga_alunos(client, db_session):
 
 
 def test_excluir_turma_apaga_respostas_dos_alunos_de_simulado_que_ja_nao_a_usa(client, db_session):
-    turma = _criar_turma(client)
+    turma = _criar_turma(client, "Turma A")
+    outra = _criar_turma(client, "Turma B")
     aluno = _criar_aluno(client, turma, "Ana")
-    simulado = _criar_simulado(client, [turma])
+    simulado = _criar_simulado(client, [turma, outra])
     _corrigir(client, simulado, aluno)
-    # Desvincula a turma do simulado (P-03) para poder excluí-la
-    assert client.patch(f"/simulados/{simulado}", json={"turmas_ids": []}).status_code == 200
+    # Desvincula a Turma A do simulado (mantendo a Turma B) para poder excluí-la
+    assert client.patch(f"/simulados/{simulado}", json={"turmas_ids": [outra]}).status_code == 200
 
     assert client.delete(f"/turmas/{turma}").status_code == 204
     assert db_session.query(RespostaAluno).count() == 0
     assert db_session.query(Aluno).count() == 0
     # O simulado e o gabarito não ficam quebrados
     assert client.get(f"/simulados/{simulado}").status_code == 200
+    assert [t["id"] for t in client.get(f"/simulados/{simulado}").json()["turmas"]] == [outra]
     assert client.get(f"/simulados/{simulado}/alunos").json() == {"total": 0, "alunos": []}
     assert len(client.get(f"/simulados/{simulado}/gabarito").json()) == 3
 

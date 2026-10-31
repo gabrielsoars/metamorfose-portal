@@ -19,6 +19,9 @@ class SimuladoNaoEncontrado(Exception):
 class TurmaNaoEncontrada(Exception):
     pass
 
+class TurmaNaoInformada(Exception):
+    pass
+
 class GabaritoInvalido(Exception):
     pass
 
@@ -30,7 +33,7 @@ class RespostasInvalidas(Exception):
 
 def _validar_e_buscar_turmas(db: Session, turmas_ids: list[int]) -> list[Turma]:
     if not turmas_ids:
-        return []
+        raise TurmaNaoInformada()
     turmas = turma_repository.buscar_turmas_por_ids(db, turmas_ids)
     if len(turmas) != len(set(turmas_ids)):
         encontrados = {t.id for t in turmas}
@@ -59,8 +62,7 @@ def atualizar_simulado(db: Session, simulado_id: int, simulado_in: SimuladoUpdat
 
     novas_turmas = None
     if "turmas_ids" in dados_atualizacao:
-        turmas_ids = dados_atualizacao["turmas_ids"]
-        novas_turmas = _validar_e_buscar_turmas(db, turmas_ids) if turmas_ids else []
+        novas_turmas = _validar_e_buscar_turmas(db, dados_atualizacao["turmas_ids"])
 
     return simulado_repository.atualizar_simulado(db, simulado, dados_atualizacao, novas_turmas)
 

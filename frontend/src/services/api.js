@@ -15,7 +15,11 @@ export async function requestJson(path, options = {}) {
     let detail = `Endpoint não disponível: ${path}`;
     try {
       const payload = await response.json();
-      detail = payload?.detail ? String(payload.detail) : detail;
+      if (Array.isArray(payload?.detail) && payload.detail.length > 0) {
+        detail = payload.detail.map((err) => err?.msg || String(err)).join('; ');
+      } else if (payload?.detail) {
+        detail = String(payload.detail);
+      }
     } catch (error) {
       detail = detail;
     }

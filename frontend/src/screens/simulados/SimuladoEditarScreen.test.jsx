@@ -1,7 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { SimuladoCriarScreen } from './SimuladoCriarScreen.jsx'
 import { SimuladoEditarScreen } from './SimuladoEditarScreen.jsx'
 import { SimuladoPainelScreen } from './SimuladoPainelScreen.jsx'
+import { requestJson } from '../../services/api.js'
 
 const simulado = {
   id: 9,
@@ -127,6 +129,72 @@ describe('SimuladoEditarScreen', () => {
 
     expect(alert).toHaveBeenCalled()
     expect(patchCalls(fetchMock)).toHaveLength(0)
+  })
+
+  it('não salva quando todas as turmas são desmarcadas', async () => {
+    const user = userEvent.setup()
+    const fetchMock = mockFetch()
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    render(<SimuladoEditarScreen go={vi.fn()} simulado={simulado} turmas={turmas} />)
+
+    await user.click(screen.getByRole('button', { name: /Turma A/ }))
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+
+    expect(alert).toHaveBeenCalledWith('Selecione ao menos uma turma para o simulado.')
+    expect(patchCalls(fetchMock)).toHaveLength(0)
+  })
+})
+
+describe('SimuladoCriarScreen', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('exige ao menos uma turma antes de cadastrar e salva quando selecionada', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async (input, options = {}) => ({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: 12, ...JSON.parse(options.body), turmas: [{ id: 1, nome: 'Turma A' }] }),
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    const go = vi.fn()
+
+    render(<SimuladoCriarScreen go={go} turmas={turmas} />)
+
+    await user.type(screen.getByLabelText('Título do Simulado'), '2º Simulado')
+    await user.type(screen.getByLabelText('Data de Aplicação'), '2026-09-15')
+    await user.click(screen.getByRole('button', { name: /Salvar e Continuar/ }))
+
+    expect(alert).toHaveBeenCalledWith('Selecione ao menos uma turma para cadastrar o simulado.')
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: /Turma A/ }))
+    await user.click(screen.getByRole('button', { name: /Salvar e Continuar/ }))
+
+    await waitFor(() => expect(go).toHaveBeenCalledWith('simulado-gabarito', expect.objectContaining({ id: 12 })))
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      titulo: '2º Simulado',
+      data_aplicacao: '2026-09-15',
+      total_questoes: 10,
+      turmas_ids: [1],
+    })
+  })
+
+  it('requestJson formata erros 422 do FastAPI sem exibir [object Object]', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false,
+      status: 422,
+      json: async () => ({
+        detail: [{ loc: ['body', 'turmas_ids'], msg: 'List should have at least 1 item after validation, not 0' }],
+      }),
+    })))
+
+    await expect(requestJson('/simulados', { method: 'POST', body: '{}' })).rejects.toThrow(
+      'List should have at least 1 item after validation, not 0',
+    )
   })
 })
 
