@@ -28,6 +28,22 @@ def criar_aluno(db: Session, turma_id: int, aluno_in: AlunoCreate) -> Aluno:
     db.refresh(novo_aluno)
     return novo_aluno
 
+
+def criar_alunos_em_lote(db: Session, turma_id: int, alunos_in: list[AlunoCreate]) -> list[Aluno]:
+    novos_alunos = [
+        Aluno(
+            nome=aluno_in.nome,
+            turma_id=turma_id,
+        )
+        for aluno_in in alunos_in
+    ]
+
+    db.add_all(novos_alunos)
+    db.commit()
+    for aluno in novos_alunos:
+        db.refresh(aluno)
+    return novos_alunos
+
 def atualizar_aluno(db: Session, aluno: Aluno, dados_atualizacao: dict) -> Aluno:
     for campo, valor in dados_atualizacao.items():
         setattr(aluno, campo, valor)
