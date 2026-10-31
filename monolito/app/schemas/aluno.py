@@ -15,3 +15,8 @@ class AlunoCreate(BaseModel):
 class AlunoUpdate(BaseModel):
     nome: Optional[str] = None
     turma_id: Optional[int] = None
+
+class ImportacaoAlunosOut(BaseModel):
+    total_importados: int
+    ignorados: int
+    alunos: list[AlunoOut]
