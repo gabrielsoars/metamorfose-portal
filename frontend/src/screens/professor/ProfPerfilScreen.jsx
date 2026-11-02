@@ -1,14 +1,19 @@
 import { LogOut, ChevronRight, Info, KeyRound } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { MobileShell, BottomNav } from '../../components/ui.jsx';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
+import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 
 export function ProfPerfilScreen() {
   const navigate = useNavigate();
   return (
-    <MobileShell>
-      <header className="bg-white pt-12 pb-6 px-6 shadow-sm z-20 flex flex-col items-center justify-center border-b border-gray-100">
+    <AppShell active="perfil" onNav={(tab) => {
+      if (tab === 'dashboard') navigate(rotas.painel());
+      else if (tab === 'turmas') navigate(rotas.turmas);
+      else if (tab === 'simulados') navigate(rotas.simulados);
+    }}>
+      <header className={`bg-white ${HEADER_TOP} pb-6 px-6 shadow-sm z-20 flex flex-col items-center justify-center border-b border-gray-100`}>
         <div className="w-20 h-20 rounded-full border-4 border-white shadow-md flex items-center justify-center text-black font-black text-2xl mb-3" style={{ background: C.yellow }}>
           P
         </div>
@@ -19,7 +24,7 @@ export function ProfPerfilScreen() {
         </span>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-28" style={{ scrollbarWidth: 'none' }}>
+      <div className={`flex-1 overflow-y-auto p-6 space-y-6 pb-8 ${GUTTER_FORM}`} style={{ scrollbarWidth: 'none' }}>
         <div>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-1">Configurações da Conta</p>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -48,12 +53,6 @@ export function ProfPerfilScreen() {
           <LogOut size={20} /> Sair da Conta
         </button>
       </div>
-
-      <BottomNav active="perfil" onNav={(tab) => {
-        if (tab === 'dashboard') navigate(rotas.painel());
-        else if (tab === 'turmas') navigate(rotas.turmas);
-        else if (tab === 'simulados') navigate(rotas.simulados);
-      }} />
-    </MobileShell>
+    </AppShell>
   );
 }

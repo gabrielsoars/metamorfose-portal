@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { ArrowLeft, Info, ChevronDown } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { atualizarTurma, criarTurma } from '../../services/turmasService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
 
@@ -46,19 +48,19 @@ export function TurmaCadastroScreen({ turma, onRefresh }) {
   }
 
   return (
-    <MobileShell>
-      <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => navigate(editando ? rotas.turma(turma.id) : rotas.turmas)} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+    <AppShell active="turmas" mobileNav={false}>
+      <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER_FORM} shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
+        <button type="button" onClick={() => navigate(editando ? rotas.turma(turma.id) : rotas.turmas)} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>{editando ? 'Edição' : 'Cadastro'}</p>
           <h1 className="text-lg font-bold text-gray-900 leading-tight">{editando ? 'Editar Turma' : 'Nova Turma'}</h1>
         </div>
-        <div className="w-10 h-10" />
+        <div className="w-11 h-11 md:w-10 md:h-10" />
       </header>
 
-      <div className="flex-1 p-6 space-y-6">
+      <div className={`flex-1 overflow-y-auto p-6 space-y-6 ${GUTTER_FORM}`}>
         {!editando && (
           <div className="rounded-xl p-4 flex gap-3 border" style={{ background: `${C.yellow}33`, borderColor: `${C.yellow}88` }}>
             <Info size={20} className="shrink-0" style={{ color: C.orange }} />
@@ -114,6 +116,6 @@ export function TurmaCadastroScreen({ turma, onRefresh }) {
 
         <OrangeBtn onClick={handleSave}>{saving ? 'Salvando...' : editando ? 'Salvar Alterações' : 'Salvar Turma'}</OrangeBtn>
       </div>
-    </MobileShell>
+    </AppShell>
   );
 }

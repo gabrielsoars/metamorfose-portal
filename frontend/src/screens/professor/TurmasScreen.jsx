@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Plus, Search, Users, ChevronRight } from 'lucide-react';
 import { C, FALLBACK_TURMAS } from '../../data/constants.js';
-import { MobileShell, BottomNav } from '../../components/ui.jsx';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
+import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 
 export function TurmasScreen({ turmas, onRefresh }) {
   const navigate = useNavigate();
@@ -11,8 +12,12 @@ export function TurmasScreen({ turmas, onRefresh }) {
   const filtered = (turmas || FALLBACK_TURMAS).filter((t) => (t.name || '').toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <MobileShell>
-      <header className="bg-white px-6 pt-12 pb-4 shadow-sm z-20 flex justify-between items-center">
+    <AppShell active="turmas" onNav={(tab) => {
+      if (tab === 'dashboard') navigate(rotas.painel());
+      else if (tab === 'simulados') navigate(rotas.simulados);
+      else if (tab === 'perfil') navigate(rotas.perfil);
+    }}>
+      <header className={`bg-white px-6 ${HEADER_TOP} pb-4 ${GUTTER} shadow-sm z-20 flex justify-between items-center`}>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Gestão de Alunos</p>
           <h1 className="text-2xl font-bold text-gray-900 leading-none">Minhas Turmas</h1>
@@ -20,8 +25,8 @@ export function TurmasScreen({ turmas, onRefresh }) {
         <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-black font-bold text-sm" style={{ background: C.yellow }}>P</div>
       </header>
 
-      <div className="bg-white px-6 pb-4 border-b border-gray-100 z-10">
-        <div className="relative">
+      <div className={`bg-white px-6 pb-4 ${GUTTER} border-b border-gray-100 z-10`}>
+        <div className="relative lg:max-w-md">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -33,7 +38,7 @@ export function TurmasScreen({ turmas, onRefresh }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-28" style={{ scrollbarWidth: 'none' }}>
+      <div className={`flex-1 overflow-y-auto p-6 pb-24 ${GUTTER} grid content-start gap-4 md:grid-cols-2 xl:grid-cols-3`} style={{ scrollbarWidth: 'none' }}>
         {filtered.map((turma) => (
           <button
             key={turma.id}
@@ -69,17 +74,12 @@ export function TurmasScreen({ turmas, onRefresh }) {
       <button
         type="button"
         onClick={() => navigate(rotas.turmaNova)}
-        className="absolute bottom-24 right-6 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
+        aria-label="Nova turma"
+        className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
         style={{ background: C.orange }}
       >
         <Plus size={28} />
       </button>
-
-      <BottomNav active="turmas" onNav={(tab) => {
-        if (tab === 'dashboard') navigate(rotas.painel());
-        else if (tab === 'simulados') navigate(rotas.simulados);
-        else if (tab === 'perfil') navigate(rotas.perfil);
-      }} />
-    </MobileShell>
+    </AppShell>
   );
 }

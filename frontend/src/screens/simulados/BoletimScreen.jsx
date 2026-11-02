@@ -2,9 +2,14 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Check, X, Ban, Clock, Camera } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { obterCorrecaoAluno } from '../../services/simuladosService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
+import { OrangeBtn } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER, GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
+
+// Colunas da tabela de questões no desktop.
+const COLUNAS = 'lg:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)_7rem]';
 
 export function BoletimScreen({ simulado, aluno }) {
   const navigate = useNavigate();
@@ -38,16 +43,16 @@ export function BoletimScreen({ simulado, aluno }) {
   const pct = total ? Math.round((correcao.acertos / total) * 100) : 0;
 
   return (
-    <MobileShell>
-      <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => navigate(rotas.simulado(simulado.id))} aria-label="Voltar ao painel" className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+    <AppShell active="simulados" mobileNav={false}>
+      <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER} shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
+        <button type="button" onClick={() => navigate(rotas.simulado(simulado.id))} aria-label="Voltar ao painel" className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Boletim · {simulado.titulo}</p>
           <h1 className="text-base font-bold text-gray-900 leading-tight truncate">{aluno.name}</h1>
         </div>
-        <div className="w-10 h-10" />
+        <div className="w-11 h-11 md:w-10 md:h-10" />
       </header>
 
       {correcao === undefined && (
@@ -72,8 +77,8 @@ export function BoletimScreen({ simulado, aluno }) {
       )}
 
       {corrigido && (
-        <>
-          <div className="bg-white px-6 py-5 border-b border-gray-100 z-10 shadow-sm">
+        <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)] lg:gap-6 lg:py-6 lg:px-[max(2rem,calc((100%-1200px)/2))]">
+          <div className={`bg-white px-6 py-5 ${GUTTER_FORM} border-b border-gray-100 z-10 shadow-sm lg:p-5 lg:self-start lg:rounded-2xl lg:border lg:border-gray-100`}>
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Nota geral</p>
@@ -88,41 +93,47 @@ export function BoletimScreen({ simulado, aluno }) {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-2 pb-8" style={{ scrollbarWidth: 'none' }}>
+          <div className={`flex-1 overflow-y-auto p-6 space-y-2 pb-8 ${GUTTER_FORM} lg:p-0`} style={{ scrollbarWidth: 'none' }}>
+            <div className={`hidden lg:grid ${COLUNAS} gap-4 px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-400`}>
+              <span>Questão</span>
+              <span>Resposta do aluno</span>
+              <span>Gabarito</span>
+              <span>Resultado</span>
+            </div>
             {detalhamento.map((d) => (
               <div
                 key={d.questao}
                 data-testid={`questao-${d.questao}`}
-                className="flex items-center justify-between p-3 rounded-xl border bg-white shadow-sm"
+                className={`flex items-center justify-between p-3 rounded-xl border bg-white shadow-sm lg:grid ${COLUNAS} lg:gap-4 lg:py-2`}
                 style={{ borderColor: d.anulada ? '#fde68a' : d.correto ? '#d1fae5' : '#fecaca' }}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 lg:contents">
                   <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center font-bold text-sm text-gray-700">
                     {String(d.questao).padStart(2, '0')}
                   </div>
-                  <div className="text-xs font-semibold text-gray-500 leading-tight">
-                    <p>Aluno: <span className="font-bold text-gray-900">{d.resposta_aluno || 'Em branco'}</span></p>
-                    <p>Gabarito: <span className="font-bold text-gray-900">{d.resposta_correta || '—'}</span></p>
+                  <div className="text-xs font-semibold text-gray-500 leading-tight lg:contents">
+                    <p className="lg:text-sm"><span className="lg:hidden">Aluno: </span><span className="font-bold text-gray-900">{d.resposta_aluno || 'Em branco'}</span></p>
+                    <p className="lg:text-sm"><span className="lg:hidden">Gabarito: </span><span className="font-bold text-gray-900">{d.resposta_correta || '—'}</span></p>
                   </div>
                 </div>
                 {d.anulada ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-yellow-50 text-yellow-700 text-[10px] font-bold uppercase tracking-wider">
+                  <span className="inline-flex lg:w-fit items-center gap-1 px-2 py-0.5 rounded-md bg-yellow-50 text-yellow-700 text-[10px] font-bold uppercase tracking-wider">
                     <Ban size={10} strokeWidth={3} /> Anulada
                   </span>
                 ) : d.correto ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
+                  <span className="inline-flex lg:w-fit items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
                     <Check size={10} strokeWidth={3} /> Acerto
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-600 text-[10px] font-bold uppercase tracking-wider">
+                  <span className="inline-flex lg:w-fit items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-600 text-[10px] font-bold uppercase tracking-wider">
                     <X size={10} strokeWidth={3} /> Erro
                   </span>
                 )}
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
-    </MobileShell>
+    </AppShell>
   );
 }

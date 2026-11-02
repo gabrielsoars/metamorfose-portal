@@ -4,6 +4,9 @@ import App from '../App'
 import userEvent from '@testing-library/user-event'
 import { renderApp, urlAtual } from '../test/rotas'
 
+// A barra lateral (desktop) e o menu inferior têm o mesmo nome; no DOM o menu inferior vem por último.
+const menuInferior = () => within(screen.getAllByRole('navigation', { name: 'Menu principal' }).at(-1))
+
 const json = (body, status = 200) => ({ ok: status < 400, status, json: async () => body })
 
 const simulado = {
@@ -156,7 +159,8 @@ describe('rotas: voltar e avançar', () => {
     const user = userEvent.setup()
     const router = renderApp('/turmas')
 
-    await user.click(await screen.findByRole('button', { name: 'Simulados' }))
+    await screen.findByRole('heading', { name: 'Minhas Turmas' })
+    await user.click(menuInferior().getByRole('button', { name: 'Simulados' }))
     expect(await screen.findByRole('heading', { name: 'Meus Simulados' })).toBeInTheDocument()
     expect(router.state.historyAction).toBe('PUSH')
 
@@ -186,7 +190,7 @@ describe('rotas: regras de histórico', () => {
     expect(urlAtual(router)).toBe('/painel')
     expect(router.state.historyAction).toBe('REPLACE')
 
-    await user.click(screen.getByRole('button', { name: 'Turmas' }))
+    await user.click(menuInferior().getByRole('button', { name: 'Turmas' }))
     await screen.findByRole('heading', { name: 'Minhas Turmas' })
     await waitFor(() => expect(screen.queryByText('Intensivo Sábado')).not.toBeInTheDocument())
     await user.click(screen.getByRole('button', { name: /Extensivo Noturno/ }))

@@ -3,7 +3,9 @@ import { X, Check, AlertTriangle } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { obterGabarito, obterCorrecaoAluno, respostasSalvas, montarRespostas, salvarRespostasAluno } from '../../services/simuladosService.js';
 import { processarGabarito } from '../../services/scanService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 import { ImagePicker } from '../../components/ImagePicker.jsx';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
@@ -125,26 +127,28 @@ export function EscaneamentoScreen({ simulado, aluno }) {
         : 'Revise as alternativas lidas pelo sistema.';
 
   return (
-    <MobileShell>
-      <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => navigate(rotas.simulado(simulado.id))} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+    <AppShell active="simulados" mobileNav={false}>
+      <header className={`bg-white ${HEADER_TOP} pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
+        <button type="button" onClick={() => navigate(rotas.simulado(simulado.id))} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
           <X size={24} />
         </button>
         <div className="text-center flex-1 px-2">
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Aluno em Correção</p>
           <h1 className="text-base font-bold text-gray-900 truncate">{aluno.name}</h1>
         </div>
-        <div className="w-10 h-10" />
+        <div className="w-11 h-11 md:w-10 md:h-10" />
       </header>
 
-      <ImagePicker onSelect={handleFile} previewUrl={preview} processing={processing} />
+      {/* Desktop: foto ocupa a coluna da esquerda inteira; aviso, respostas e nota ficam na da direita. */}
+      <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-2 lg:grid-rows-[auto_minmax(0,1fr)_auto]">
+      <ImagePicker onSelect={handleFile} previewUrl={preview} processing={processing} className="lg:row-span-3 lg:h-full" />
 
-      <div className="bg-yellow-50 px-6 py-2.5 border-b border-yellow-100 flex items-center gap-2 shrink-0">
+      <div className={`bg-yellow-50 px-6 py-2.5 ${GUTTER_FORM} border-b border-yellow-100 flex items-center gap-2 shrink-0 lg:col-start-2`}>
         <AlertTriangle size={16} className="text-yellow-600" />
         <p className="text-xs text-yellow-700 font-semibold">{banner}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-3 pb-32" style={{ scrollbarWidth: 'none' }}>
+      <div className={`flex-1 overflow-y-auto p-6 space-y-3 pb-32 ${GUTTER_FORM} lg:col-start-2 lg:pb-6`} style={{ scrollbarWidth: 'none' }}>
         {numeros.map((num) => {
           const aviso = AVISO_STATUS[statuses[num]];
           return (
@@ -165,7 +169,7 @@ export function EscaneamentoScreen({ simulado, aluno }) {
                         onChange={() => setAnswers((prev) => ({ ...prev, [num]: opt }))}
                       />
                       <div
-                        className="w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold transition-all"
+                        className="w-9 h-9 md:w-8 md:h-8 rounded-full border flex items-center justify-center text-xs font-bold transition-all"
                         style={{
                           background: answers[num] === opt ? '#1f2937' : '#fff',
                           borderColor: answers[num] === opt ? '#1f2937' : aviso ? '#fecaca' : '#e5e7eb',
@@ -184,7 +188,7 @@ export function EscaneamentoScreen({ simulado, aluno }) {
         })}
       </div>
 
-      <div className="absolute bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-30">
+      <div className={`absolute bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 ${GUTTER_FORM} shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-30 lg:static lg:col-start-2`}>
         <div className="flex items-center justify-between mb-3 px-1">
           <p className="text-xs font-bold text-gray-500">Nota Calculada:</p>
           {gabarito === null ? (
@@ -199,6 +203,7 @@ export function EscaneamentoScreen({ simulado, aluno }) {
           {saving ? 'Salvando...' : 'Concluir'} <Check size={20} />
         </OrangeBtn>
       </div>
-    </MobileShell>
+      </div>
+    </AppShell>
   );
 }

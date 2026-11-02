@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { SearchX } from 'lucide-react';
 import { C } from '../data/constants.js';
-import { MobileShell } from '../components/ui.jsx';
+import { AppShell } from '../components/AppShell.jsx';
 import { useTitulo } from '../routes/titulo.js';
 import { rotas } from '../routes/rotas.js';
 
@@ -15,7 +15,7 @@ export function NaoEncontradoScreen({
   useTitulo(titulo);
 
   return (
-    <MobileShell>
+    <AppShell variant="admin">
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-3">
         <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
           <SearchX size={28} />
@@ -26,6 +26,6 @@ export function NaoEncontradoScreen({
           {voltarTexto}
         </Link>
       </div>
-    </MobileShell>
+    </AppShell>
   );
 }

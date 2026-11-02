@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { MobileShell } from '../components/ui.jsx';
+import { AppShell } from '../components/AppShell.jsx';
 import { NaoEncontradoScreen } from '../screens/NaoEncontradoScreen.jsx';
 import { obterTurma, normalizeTurma } from '../services/turmasService.js';
 import { obterUsuario, normalizeUsuario } from '../services/usuariosService.js';
@@ -48,9 +48,9 @@ function useRegistro(id, carregar) {
 
 function Carregando() {
   return (
-    <MobileShell>
+    <AppShell variant="admin">
       <p className="p-6 text-sm font-semibold text-gray-500 text-center">Carregando...</p>
-    </MobileShell>
+    </AppShell>
   );
 }
 
