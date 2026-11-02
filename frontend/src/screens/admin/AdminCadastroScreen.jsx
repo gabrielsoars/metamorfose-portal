@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { criarUsuario } from '../../services/usuariosService.js';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 import { OrangeBtn, Sheet } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 
-export function AdminCadastroScreen({ go, onRefresh }) {
+export function AdminCadastroScreen({ onRefresh }) {
+  const navigate = useNavigate();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [materia, setMateria] = useState('Matemática');
@@ -23,7 +26,7 @@ export function AdminCadastroScreen({ go, onRefresh }) {
       });
 
       if (onRefresh) await onRefresh();
-      go('admin-home');
+      navigate(rotas.admin, { replace: true });
     } catch (error) {
       window.alert(error.message || 'Não foi possível criar o usuário.');
     } finally {
@@ -33,11 +36,11 @@ export function AdminCadastroScreen({ go, onRefresh }) {
 
   return (
     <AppShell variant="admin">
-      <Sheet onClose={() => go('admin-home')} labelledBy="admin-cadastro-titulo">
+      <Sheet onClose={() => navigate(rotas.admin)} labelledBy="admin-cadastro-titulo">
         <div className="px-6 pb-8 pt-2 md:pt-6">
           <div className="flex justify-between items-center mb-6">
             <h2 id="admin-cadastro-titulo" className="text-xl font-bold text-gray-900">Novo Cadastro</h2>
-            <button type="button" aria-label="Fechar" onClick={() => go('admin-home')} className="w-10 h-10 md:w-8 md:h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+            <button type="button" aria-label="Fechar" onClick={() => navigate(rotas.admin)} className="w-10 h-10 md:w-8 md:h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
               <X size={18} />
             </button>
           </div>

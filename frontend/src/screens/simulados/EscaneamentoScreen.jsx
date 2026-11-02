@@ -7,13 +7,16 @@ import { OrangeBtn } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 import { ImagePicker } from '../../components/ImagePicker.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
 const AVISO_STATUS = {
   sem_resposta: 'Atenção: Em branco ou rasura',
   multipla_marcacao: 'Atenção: Múltipla marcação',
 };
 
-export function EscaneamentoScreen({ go, simulado, aluno }) {
+export function EscaneamentoScreen({ simulado, aluno }) {
+  const navigate = useNavigate();
   // Respostas e status do scan, indexados pelo número da questão.
   const [answers, setAnswers] = useState({});
   const [statuses, setStatuses] = useState({});
@@ -108,7 +111,7 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
     setSaving(true);
     try {
       await salvarRespostasAluno(simulado.id, aluno.id, montarRespostas(gabarito, answers, total));
-      go('simulado-painel');
+      navigate(rotas.simulado(simulado.id), { replace: true });
     } catch (error) {
       window.alert(error.message || 'Não foi possível salvar a correção.');
       setSaving(false);
@@ -124,9 +127,9 @@ export function EscaneamentoScreen({ go, simulado, aluno }) {
         : 'Revise as alternativas lidas pelo sistema.';
 
   return (
-    <AppShell go={go} active="simulados" mobileNav={false}>
+    <AppShell active="simulados" mobileNav={false}>
       <header className={`bg-white ${HEADER_TOP} pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
-        <button type="button" onClick={() => go('simulado-painel')} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.simulado(simulado.id))} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
           <X size={24} />
         </button>
         <div className="text-center flex-1 px-2">

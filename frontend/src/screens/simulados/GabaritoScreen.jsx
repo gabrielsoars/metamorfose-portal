@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { X, Info, Check } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { obterGabarito, salvarGabarito } from '../../services/simuladosService.js';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 import { OrangeBtn } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 
-export function GabaritoScreen({ go, simulado }) {
+export function GabaritoScreen({ simulado }) {
+  const navigate = useNavigate();
   // Respostas marcadas, indexadas pelo número da questão: { 1: 'A', 2: 'C' }
   const [answers, setAnswers] = useState({});
   const [saving, setSaving] = useState(false);
@@ -39,10 +42,10 @@ export function GabaritoScreen({ go, simulado }) {
 
   if (!simulado) {
     return (
-      <AppShell go={go} active="simulados" mobileNav={false}>
+      <AppShell active="simulados" mobileNav={false}>
         <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4 text-center">
           <p className="text-sm font-medium text-gray-500">Nenhum simulado selecionado.</p>
-          <OrangeBtn onClick={() => go('simulados-lista')}>Voltar para os simulados</OrangeBtn>
+          <OrangeBtn onClick={() => navigate(rotas.simulados)}>Voltar para os simulados</OrangeBtn>
         </div>
       </AppShell>
     );
@@ -61,7 +64,7 @@ export function GabaritoScreen({ go, simulado }) {
     setSaving(true);
     try {
       await salvarGabarito(simulado.id, itens);
-      go('simulado-painel');
+      navigate(rotas.simulado(simulado.id), { replace: true });
     } catch (error) {
       window.alert(error.message || 'Não foi possível salvar o gabarito.');
     } finally {
@@ -70,9 +73,9 @@ export function GabaritoScreen({ go, simulado }) {
   };
 
   return (
-    <AppShell go={go} active="simulados" mobileNav={false}>
+    <AppShell active="simulados" mobileNav={false}>
       <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER} shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
-        <button type="button" onClick={() => go('simulado-painel')} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.simulado(simulado.id))} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <X size={24} />
         </button>
         <div className="text-center flex-1 px-2">

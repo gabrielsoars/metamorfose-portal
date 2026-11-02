@@ -1,5 +1,7 @@
 import { LayoutDashboard, Users, FileText, User, LogOut, Camera, CheckCircle2, BarChart3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { C } from '../data/constants.js';
+import { rotas } from '../routes/rotas.js';
 
 const FONT = { fontFamily: "'Inter', sans-serif" };
 
@@ -12,12 +14,12 @@ const NAV_ITEMS = [
 
 // Mesmas chamadas do menu inferior. Usada pelas telas que não têm menu inferior próprio
 // (no desktop a barra lateral aparece em todas as telas do professor).
-function navPadrao(go) {
+function navPadrao(navigate) {
   return (tab) => {
-    if (tab === 'dashboard') go('prof-dashboard');
-    else if (tab === 'turmas') go('prof-turmas');
-    else if (tab === 'simulados') go('simulados-lista');
-    else if (tab === 'perfil') go('prof-perfil');
+    if (tab === 'dashboard') navigate(rotas.painel());
+    else if (tab === 'turmas') navigate(rotas.turmas);
+    else if (tab === 'simulados') navigate(rotas.simulados);
+    else if (tab === 'perfil') navigate(rotas.perfil);
   };
 }
 
@@ -159,9 +161,11 @@ function BottomNav({ active, onNav }) {
  * - 'admin': coluna inteira, sem menu; o cabeçalho da tela faz o papel de barra superior.
  * - 'professor': barra lateral no desktop; menu inferior no celular/tablet se `mobileNav`.
  *
- * `active` e `onNav` são os mesmos que o menu inferior recebia. Sem `onNav`, usa a navegação padrão via `go`.
+ * `active` e `onNav` são os mesmos que o menu inferior recebia. Sem `onNav`, usa a navegação padrão por rota.
  */
-export function AppShell({ variant = 'professor', go, active = null, onNav, mobileNav = true, children }) {
+export function AppShell({ variant = 'professor', active = null, onNav, mobileNav = true, children }) {
+  const navigate = useNavigate();
+
   if (variant === 'auth') {
     return (
       <div className="h-dvh lg:flex overflow-hidden bg-gray-50 md:bg-gray-200 lg:bg-white" style={FONT}>
@@ -185,11 +189,11 @@ export function AppShell({ variant = 'professor', go, active = null, onNav, mobi
     );
   }
 
-  const handleNav = onNav || navPadrao(go);
+  const handleNav = onNav || navPadrao(navigate);
 
   return (
     <div className="h-dvh flex overflow-hidden bg-gray-50" style={FONT}>
-      <Sidebar active={active} onNav={handleNav} onSair={() => go('login')} />
+      <Sidebar active={active} onNav={handleNav} onSair={() => navigate(rotas.login, { replace: true })} />
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="flex-1 min-h-0 flex flex-col relative overflow-hidden">
           {children}

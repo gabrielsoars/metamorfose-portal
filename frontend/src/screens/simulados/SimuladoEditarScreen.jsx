@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { atualizarSimulado, obterGabarito } from '../../services/simuladosService.js';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 import { OrangeBtn } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
@@ -10,7 +12,8 @@ const inputClass = 'w-full px-4 py-3 bg-white border border-gray-200 rounded-xl 
 const onFocus = (e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; };
 const onBlur = (e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; };
 
-export function SimuladoEditarScreen({ go, simulado, turmas = [] }) {
+export function SimuladoEditarScreen({ simulado, turmas = [] }) {
+  const navigate = useNavigate();
   const [titulo, setTitulo] = useState(simulado.titulo);
   const [data, setData] = useState(simulado.data_aplicacao || '');
   const [totalQuestoes, setTotalQuestoes] = useState(String(simulado.total_questoes));
@@ -52,13 +55,13 @@ export function SimuladoEditarScreen({ go, simulado, turmas = [] }) {
         setSaving(false);
         return;
       }
-      const atualizado = await atualizarSimulado(simulado.id, {
+      await atualizarSimulado(simulado.id, {
         titulo: titulo.trim(),
         data_aplicacao: data,
         total_questoes: novoTotal,
         turmas_ids: selectedTurmas,
       });
-      go('simulado-painel', atualizado);
+      navigate(rotas.simulado(simulado.id), { replace: true });
     } catch (error) {
       window.alert(error.message || 'Não foi possível salvar o simulado.');
       setSaving(false);
@@ -66,9 +69,9 @@ export function SimuladoEditarScreen({ go, simulado, turmas = [] }) {
   }
 
   return (
-    <AppShell go={go} active="simulados" mobileNav={false}>
+    <AppShell active="simulados" mobileNav={false}>
       <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER_FORM} shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
-        <button type="button" aria-label="Voltar" onClick={() => go('simulado-painel')} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" aria-label="Voltar" onClick={() => navigate(rotas.simulado(simulado.id))} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">

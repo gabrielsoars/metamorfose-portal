@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Plus, Search, LogOut, Users, ChevronRight, ChevronDown } from 'lucide-react';
 import { C, FALLBACK_PROFESSORS } from '../../data/constants.js';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 
 // Colunas da tabela de professores no desktop (avatar, nome, e-mail, matéria, status, seta).
 const COLUNAS = 'lg:grid-cols-[2.5rem_minmax(0,1.4fr)_minmax(0,1.6fr)_minmax(0,1fr)_5.5rem_1.25rem]';
 
-export function AdminHomeScreen({ go, professors }) {
+export function AdminHomeScreen({ professors }) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [subject, setSubject] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -28,7 +31,7 @@ export function AdminHomeScreen({ go, professors }) {
         </div>
         <button
           type="button"
-          onClick={() => go('login')}
+          onClick={() => navigate(rotas.login, { replace: true })}
           aria-label="Sair"
           title="Sair"
           className="w-11 h-11 md:w-10 md:h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors"
@@ -106,7 +109,7 @@ export function AdminHomeScreen({ go, professors }) {
               <button
                 key={prof.id}
                 type="button"
-                onClick={() => go('admin-gestao', prof)}
+                onClick={() => navigate(rotas.professor(prof.id))}
                 className={`w-full bg-white p-4 rounded-2xl shadow-sm border flex items-center gap-4 text-left transition-all hover:shadow-md lg:grid ${COLUNAS} lg:px-5 lg:py-3 lg:rounded-none lg:border-0 lg:shadow-none lg:hover:shadow-none lg:hover:bg-gray-50`}
                 style={{ borderColor: '#f3f4f6', opacity: prof.active ? 1 : 0.65 }}
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.orange)}
@@ -144,7 +147,7 @@ export function AdminHomeScreen({ go, professors }) {
       <button
         type="button"
         aria-label="Novo cadastro"
-        onClick={() => go('admin-cadastro')}
+        onClick={() => navigate(rotas.professorNovo)}
         className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
         style={{ background: C.orange }}
       >

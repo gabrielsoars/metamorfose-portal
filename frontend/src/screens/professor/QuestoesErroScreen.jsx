@@ -3,6 +3,8 @@ import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { listarSimulados, carregarQuestoesComErro } from '../../services/simuladosService.js';
 import { listarTurmas } from '../../services/turmasService.js';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { rotas, filtroDaUrl } from '../../routes/rotas.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 
@@ -172,18 +174,20 @@ export function QuestoesErroLista({ q, limite, tabela = false }) {
   );
 }
 
-export function QuestoesErroScreen({ go, filtro }) {
-  const q = useQuestoesErro(filtro, (novo) => go('questoes-erro', novo));
+export function QuestoesErroScreen() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const q = useQuestoesErro(filtroDaUrl(searchParams), (novo) => navigate(rotas.questoesErro(novo), { replace: true }));
 
   return (
-    <AppShell go={go} active="dashboard" onNav={(tab) => {
-      if (tab === 'dashboard') go('prof-dashboard', q.filtro);
-      else if (tab === 'turmas') go('prof-turmas');
-      else if (tab === 'simulados') go('simulados-lista');
-      else if (tab === 'perfil') go('prof-perfil');
+    <AppShell active="dashboard" onNav={(tab) => {
+      if (tab === 'dashboard') navigate(rotas.painel(q.filtro));
+      else if (tab === 'turmas') navigate(rotas.turmas);
+      else if (tab === 'simulados') navigate(rotas.simulados);
+      else if (tab === 'perfil') navigate(rotas.perfil);
     }}>
       <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER} shadow-sm z-20 flex items-center border-b border-gray-100`}>
-        <button type="button" onClick={() => go('prof-dashboard', q.filtro)} aria-label="Voltar" className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.painel(q.filtro))} aria-label="Voltar" className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="flex-1 px-2">

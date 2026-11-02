@@ -1,8 +1,9 @@
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BoletimScreen } from './BoletimScreen.jsx'
 import { SimuladoPainelScreen } from './SimuladoPainelScreen.jsx'
 import { montarRanking, parseNota } from '../../services/simuladosService.js'
+import { renderNaRota, urlAtual } from '../../test/rotas'
 
 const simulado = { id: 9, titulo: 'Simulado 1', total_questoes: 4, turmas: [{ id: 1, nome: 'Turma A' }] }
 const aluno = { id: 1, name: 'Ana Souza' }
@@ -52,10 +53,9 @@ describe('BoletimScreen', () => {
         { questao: 4, resposta_aluno: 'E', resposta_correta: 'E', correto: true, anulada: false },
       ],
     })))
-    const go = vi.fn()
     const user = userEvent.setup()
 
-    render(<BoletimScreen go={go} simulado={simulado} aluno={aluno} />)
+    const router = renderNaRota(<BoletimScreen simulado={simulado} aluno={aluno} />, { rota: '/simulados/9/alunos/1/boletim' })
 
     expect(await screen.findByText('3/4')).toBeInTheDocument()
     expect(screen.getByText('Ana Souza')).toBeInTheDocument()
@@ -74,24 +74,23 @@ describe('BoletimScreen', () => {
     expect(q3.getByText('Em branco')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /voltar ao painel/i }))
-    expect(go).toHaveBeenCalledWith('simulado-painel')
+    expect(urlAtual(router)).toBe('/simulados/9')
   })
 
   it('aluno não corrigido mostra estado vazio, nunca nota zero', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({
       status: 'NÃO CORRIGIDO', acertos: null, total_questoes: 4, nota: null, detalhamento: [],
     })))
-    const go = vi.fn()
     const user = userEvent.setup()
 
-    render(<BoletimScreen go={go} simulado={simulado} aluno={aluno} />)
+    const router = renderNaRota(<BoletimScreen simulado={simulado} aluno={aluno} />, { rota: '/simulados/9/alunos/1/boletim' })
 
     expect(await screen.findByText('Ainda não corrigido')).toBeInTheDocument()
     expect(screen.queryByText(/nota geral/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/0\/4/)).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /escanear/i }))
-    expect(go).toHaveBeenCalledWith('escaneamento', aluno)
+    expect(urlAtual(router)).toBe('/simulados/9/alunos/1/correcao')
   })
 })
 
@@ -110,7 +109,7 @@ describe('SimuladoPainelScreen: ranking e acesso ao boletim', () => {
   it('lista o ranking ordenado com a média e não inclui pendentes', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(resposta)))
 
-    render(<SimuladoPainelScreen go={vi.fn()} simulado={simulado} />)
+    renderNaRota(<SimuladoPainelScreen simulado={simulado} />, { rota: '/simulados/9' })
 
     const ranking = await screen.findByRole('region', { name: /ranking da turma/i })
     const itens = within(ranking).getAllByRole('listitem').map((li) => li.textContent)
@@ -124,7 +123,7 @@ describe('SimuladoPainelScreen: ranking e acesso ao boletim', () => {
       alunos: [{ id: 2, nome: 'Bruno Lima', turma_id: 1, turma: 'Turma A', status: 'NÃO CORRIGIDO', nota: null }],
     })))
 
-    render(<SimuladoPainelScreen go={vi.fn()} simulado={simulado} />)
+    renderNaRota(<SimuladoPainelScreen simulado={simulado} />, { rota: '/simulados/9' })
 
     expect(await screen.findByText('Bruno Lima')).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: /ranking da turma/i })).not.toBeInTheDocument()
@@ -132,18 +131,18 @@ describe('SimuladoPainelScreen: ranking e acesso ao boletim', () => {
 
   it('clicar no aluno corrigido abre o boletim; Escanear e editar vão ao escaneamento', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(resposta)))
-    const go = vi.fn()
     const user = userEvent.setup()
 
-    render(<SimuladoPainelScreen go={go} simulado={simulado} />)
+    const router = renderNaRota(<SimuladoPainelScreen simulado={simulado} />, { rota: '/simulados/9' })
 
     await user.click(await screen.findByRole('button', { name: /ver boletim de ana souza/i }))
-    expect(go).toHaveBeenCalledWith('aluno-boletim', expect.objectContaining({ id: 1, name: 'Ana Souza' }))
+    expect(urlAtual(router)).toBe('/simulados/9/alunos/1/boletim')
 
     await user.click(screen.getByRole('button', { name: /editar correção de ana souza/i }))
-    expect(go).toHaveBeenCalledWith('escaneamento', expect.objectContaining({ id: 1 }))
+    expect(urlAtual(router)).toBe('/simulados/9/alunos/1/correcao')
 
     await user.click(screen.getByRole('button', { name: /escanear/i }))
-    expect(go).toHaveBeenCalledWith('escaneamento', expect.objectContaining({ id: 2 }))
+    expect(urlAtual(router)).toBe('/simulados/9/alunos/2/correcao')
+    expect(router.state.historyAction).toBe('PUSH')
   })
 })

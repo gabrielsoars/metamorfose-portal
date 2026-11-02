@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Check, X, Ban, Clock, Camera } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { obterCorrecaoAluno } from '../../services/simuladosService.js';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 import { OrangeBtn } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
@@ -9,7 +11,8 @@ import { GUTTER, GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 // Colunas da tabela de questões no desktop.
 const COLUNAS = 'lg:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)_7rem]';
 
-export function BoletimScreen({ go, simulado, aluno }) {
+export function BoletimScreen({ simulado, aluno }) {
+  const navigate = useNavigate();
   // undefined = carregando; depois o retorno de GET /simulados/{id}/alunos/{aluno_id}.
   const [correcao, setCorrecao] = useState(undefined);
 
@@ -40,9 +43,9 @@ export function BoletimScreen({ go, simulado, aluno }) {
   const pct = total ? Math.round((correcao.acertos / total) * 100) : 0;
 
   return (
-    <AppShell go={go} active="simulados" mobileNav={false}>
+    <AppShell active="simulados" mobileNav={false}>
       <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER} shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
-        <button type="button" onClick={() => go('simulado-painel')} aria-label="Voltar ao painel" className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.simulado(simulado.id))} aria-label="Voltar ao painel" className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">
@@ -67,7 +70,7 @@ export function BoletimScreen({ go, simulado, aluno }) {
           </div>
           <h2 className="text-base font-bold text-gray-900">Ainda não corrigido</h2>
           <p className="text-sm text-gray-500">Este aluno ainda não tem correção salva neste simulado.</p>
-          <OrangeBtn onClick={() => go('escaneamento', aluno)} className="mt-2">
+          <OrangeBtn onClick={() => navigate(rotas.correcao(simulado.id, aluno.id))} className="mt-2">
             <Camera size={18} /> Escanear
           </OrangeBtn>
         </div>

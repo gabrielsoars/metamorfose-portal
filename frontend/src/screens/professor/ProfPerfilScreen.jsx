@@ -1,14 +1,17 @@
 import { LogOut, ChevronRight, Info, KeyRound } from 'lucide-react';
 import { C } from '../../data/constants.js';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 
-export function ProfPerfilScreen({ go }) {
+export function ProfPerfilScreen() {
+  const navigate = useNavigate();
   return (
-    <AppShell go={go} active="perfil" onNav={(tab) => {
-      if (tab === 'dashboard') go('prof-dashboard');
-      else if (tab === 'turmas') go('prof-turmas');
-      else if (tab === 'simulados') go('simulados-lista');
+    <AppShell active="perfil" onNav={(tab) => {
+      if (tab === 'dashboard') navigate(rotas.painel());
+      else if (tab === 'turmas') navigate(rotas.turmas);
+      else if (tab === 'simulados') navigate(rotas.simulados);
     }}>
       <header className={`bg-white ${HEADER_TOP} pb-6 px-6 shadow-sm z-20 flex flex-col items-center justify-center border-b border-gray-100`}>
         <div className="w-20 h-20 rounded-full border-4 border-white shadow-md flex items-center justify-center text-black font-black text-2xl mb-3" style={{ background: C.yellow }}>
@@ -46,7 +49,7 @@ export function ProfPerfilScreen({ go }) {
           </div>
         </div>
 
-        <button type="button" onClick={() => go('login')} className="w-full flex items-center justify-center gap-2 py-4 rounded-xl border border-red-100 bg-red-50 text-red-600 font-bold hover:bg-red-100 active:scale-[0.98] transition-all">
+        <button type="button" onClick={() => navigate(rotas.login, { replace: true })} className="w-full flex items-center justify-center gap-2 py-4 rounded-xl border border-red-100 bg-red-50 text-red-600 font-bold hover:bg-red-100 active:scale-[0.98] transition-all">
           <LogOut size={20} /> Sair da Conta
         </button>
       </div>

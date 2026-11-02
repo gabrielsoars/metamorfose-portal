@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { atualizarUsuario } from '../../services/usuariosService.js';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 import { OrangeBtn, Sheet } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 
-export function AdminGestaoScreen({ go, professor, onRefresh }) {
+export function AdminGestaoScreen({ professor, onRefresh }) {
+  const navigate = useNavigate();
   const [active, setActive] = useState(Boolean(professor?.active ?? true));
   const [nome, setNome] = useState(professor?.name || '');
   const [email, setEmail] = useState(professor?.email || '');
@@ -23,7 +26,7 @@ export function AdminGestaoScreen({ go, professor, onRefresh }) {
   }, [professor]);
 
   async function handleSave() {
-    if (!professor) return go('admin-home');
+    if (!professor) return navigate(rotas.admin);
 
     setSaving(true);
     try {
@@ -36,7 +39,7 @@ export function AdminGestaoScreen({ go, professor, onRefresh }) {
       });
 
       if (onRefresh) await onRefresh();
-      go('admin-home');
+      navigate(rotas.admin, { replace: true });
     } catch (error) {
       window.alert(error.message || 'Não foi possível salvar o professor.');
     } finally {
@@ -46,11 +49,11 @@ export function AdminGestaoScreen({ go, professor, onRefresh }) {
 
   return (
     <AppShell variant="admin">
-      <Sheet onClose={() => go('admin-home')} labelledBy="admin-gestao-titulo">
+      <Sheet onClose={() => navigate(rotas.admin)} labelledBy="admin-gestao-titulo">
         <div className="px-6 pb-8 pt-2 md:pt-6">
           <div className="flex justify-between items-center mb-6">
             <h2 id="admin-gestao-titulo" className="text-xl font-bold text-gray-900">Editar Professor</h2>
-            <button type="button" aria-label="Fechar" onClick={() => go('admin-home')} className="w-10 h-10 md:w-8 md:h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+            <button type="button" aria-label="Fechar" onClick={() => navigate(rotas.admin)} className="w-10 h-10 md:w-8 md:h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
               <X size={18} />
             </button>
           </div>

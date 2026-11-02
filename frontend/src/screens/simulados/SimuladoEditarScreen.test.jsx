@@ -1,7 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SimuladoEditarScreen } from './SimuladoEditarScreen.jsx'
 import { SimuladoPainelScreen } from './SimuladoPainelScreen.jsx'
+import { renderNaRota, urlAtual } from '../../test/rotas'
+
+const EDICAO = { rota: '/simulados/9/editar' }
 
 const simulado = {
   id: 9,
@@ -42,8 +45,7 @@ describe('SimuladoEditarScreen', () => {
   it('preenche o formulário e salva via PATCH voltando ao painel com o simulado atualizado', async () => {
     const user = userEvent.setup()
     const fetchMock = mockFetch()
-    const go = vi.fn()
-    render(<SimuladoEditarScreen go={go} simulado={simulado} turmas={turmas} />)
+    const router = renderNaRota(<SimuladoEditarScreen simulado={simulado} turmas={turmas} />, EDICAO)
 
     expect(screen.getByLabelText('Título do Simulado')).toHaveValue('1º Simulado')
     expect(screen.getByLabelText('Questões')).toHaveValue(10)
@@ -55,7 +57,9 @@ describe('SimuladoEditarScreen', () => {
     await user.click(screen.getByRole('button', { name: /Turma B/ }))
     await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
 
-    await waitFor(() => expect(go).toHaveBeenCalledWith('simulado-painel', expect.objectContaining({ titulo: 'Simulado Final', total_questoes: 20 })))
+    // Salvar substitui a edição pelo painel (o painel busca o simulado atualizado pelo id).
+    await waitFor(() => expect(urlAtual(router)).toBe('/simulados/9'))
+    expect(router.state.historyAction).toBe('REPLACE')
     const [[url, options]] = patchCalls(fetchMock)
     expect(url).toMatch(/\/simulados\/9$/)
     expect(JSON.parse(options.body)).toEqual({
@@ -70,8 +74,7 @@ describe('SimuladoEditarScreen', () => {
     const user = userEvent.setup()
     const fetchMock = mockFetch({ gabarito: [{ num_questao: 3, alt_correta: 'A' }, { num_questao: 9, alt_correta: 'B' }] })
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
-    const go = vi.fn()
-    render(<SimuladoEditarScreen go={go} simulado={simulado} turmas={turmas} />)
+    const router = renderNaRota(<SimuladoEditarScreen simulado={simulado} turmas={turmas} />, EDICAO)
 
     await user.clear(screen.getByLabelText('Questões'))
     await user.type(screen.getByLabelText('Questões'), '5')
@@ -80,7 +83,7 @@ describe('SimuladoEditarScreen', () => {
     await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1))
     expect(confirm.mock.calls[0][0]).toContain('1 delas já têm gabarito')
     expect(patchCalls(fetchMock)).toHaveLength(0)
-    expect(go).not.toHaveBeenCalled()
+    expect(urlAtual(router)).toBe('/simulados/9/editar')
     // O botão volta a ficar disponível depois de recusar.
     expect(await screen.findByRole('button', { name: 'Salvar alterações' })).toBeInTheDocument()
   })
@@ -89,14 +92,13 @@ describe('SimuladoEditarScreen', () => {
     const user = userEvent.setup()
     const fetchMock = mockFetch({ gabarito: [{ num_questao: 9, alt_correta: 'B' }] })
     vi.spyOn(window, 'confirm').mockReturnValue(true)
-    const go = vi.fn()
-    render(<SimuladoEditarScreen go={go} simulado={simulado} turmas={turmas} />)
+    const router = renderNaRota(<SimuladoEditarScreen simulado={simulado} turmas={turmas} />, EDICAO)
 
     await user.clear(screen.getByLabelText('Questões'))
     await user.type(screen.getByLabelText('Questões'), '5')
     await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
 
-    await waitFor(() => expect(go).toHaveBeenCalledWith('simulado-painel', expect.objectContaining({ total_questoes: 5 })))
+    await waitFor(() => expect(urlAtual(router)).toBe('/simulados/9'))
     expect(JSON.parse(patchCalls(fetchMock)[0][1].body).total_questoes).toBe(5)
   })
 
@@ -104,14 +106,13 @@ describe('SimuladoEditarScreen', () => {
     const user = userEvent.setup()
     mockFetch({ gabarito: [{ num_questao: 2, alt_correta: 'A' }] })
     const confirm = vi.spyOn(window, 'confirm')
-    const go = vi.fn()
-    render(<SimuladoEditarScreen go={go} simulado={simulado} turmas={turmas} />)
+    const router = renderNaRota(<SimuladoEditarScreen simulado={simulado} turmas={turmas} />, EDICAO)
 
     await user.clear(screen.getByLabelText('Questões'))
     await user.type(screen.getByLabelText('Questões'), '5')
     await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
 
-    await waitFor(() => expect(go).toHaveBeenCalled())
+    await waitFor(() => expect(urlAtual(router)).toBe('/simulados/9'))
     expect(confirm).not.toHaveBeenCalled()
   })
 
@@ -119,7 +120,7 @@ describe('SimuladoEditarScreen', () => {
     const user = userEvent.setup()
     const fetchMock = mockFetch()
     const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
-    render(<SimuladoEditarScreen go={vi.fn()} simulado={simulado} turmas={turmas} />)
+    renderNaRota(<SimuladoEditarScreen simulado={simulado} turmas={turmas} />, EDICAO)
 
     await user.clear(screen.getByLabelText('Questões'))
     await user.type(screen.getByLabelText('Questões'), '0')
@@ -138,12 +139,11 @@ describe('menu do painel do simulado', () => {
   it('abre o menu ⋮ e leva para a edição', async () => {
     const user = userEvent.setup()
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => [] })))
-    const go = vi.fn()
-    render(<SimuladoPainelScreen go={go} simulado={simulado} />)
+    const router = renderNaRota(<SimuladoPainelScreen simulado={simulado} />, { rota: '/simulados/9' })
 
     await user.click(screen.getByRole('button', { name: 'Mais opções' }))
     await user.click(screen.getByRole('menuitem', { name: /Editar simulado/ }))
 
-    expect(go).toHaveBeenCalledWith('simulado-editar')
+    expect(urlAtual(router)).toBe('/simulados/9/editar')
   })
 })

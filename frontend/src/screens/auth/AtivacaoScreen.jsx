@@ -1,15 +1,18 @@
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { C } from '../../data/constants.js';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 import { OrangeBtn, Input } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 
-export function AtivacaoScreen({ go }) {
+export function AtivacaoScreen() {
+  const navigate = useNavigate();
   return (
     <AppShell variant="auth">
       <main className="flex-1 flex flex-col p-6 md:p-8">
         <button
           type="button"
-          onClick={() => go('login')}
+          onClick={() => navigate(rotas.login)}
           className="flex items-center text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors mt-4 md:mt-0 mb-6 w-fit"
         >
           <ArrowLeft size={18} className="mr-1" /> Voltar
@@ -38,7 +41,7 @@ export function AtivacaoScreen({ go }) {
             <Input label="Confirmar Senha" type="password" placeholder="Repita sua nova senha" />
 
             <div className="pt-2">
-              <OrangeBtn onClick={() => go('prof-dashboard')}>
+              <OrangeBtn onClick={() => navigate(rotas.painel(), { replace: true })}>
                 Ativar e Acessar <ArrowRight size={20} />
               </OrangeBtn>
             </div>

@@ -8,11 +8,14 @@ import { useEscape } from '../../components/hooks.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 
 // Colunas da tabela de alunos no desktop (avatar, nome, matrícula, ações).
 const COLUNAS = 'lg:grid-cols-[2.5rem_minmax(0,1fr)_10rem_6rem]';
 
-export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
+export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [list, setList] = useState(FALLBACK_ALUNOS);
   const [editingId, setEditingId] = useState(null);
@@ -94,7 +97,7 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
       if (pendingDelete.tipo === 'turma') {
         await excluirTurma(turma.id);
         if (onRefresh) await onRefresh();
-        go('prof-turmas');
+        navigate(rotas.turmas, { replace: true });
         return;
       }
       await excluirAluno(pendingDelete.aluno.id);
@@ -121,14 +124,14 @@ export function TurmaDetalhesScreen({ go, turma, turmas, onRefresh }) {
 
   // Itens do menu ⋮ do cabeçalho. Novas ações entram aqui.
   const menuItems = [
-    { key: 'editar', label: 'Editar turma', icon: Edit2, onClick: () => go('turma-editar', turma) },
+    { key: 'editar', label: 'Editar turma', icon: Edit2, onClick: () => navigate(rotas.turmaEditar(turma.id)) },
     { key: 'excluir', label: 'Excluir turma', icon: Trash2, danger: true, onClick: () => setPendingDelete({ tipo: 'turma' }) },
   ];
 
   return (
-    <AppShell go={go} active="turmas" mobileNav={false}>
+    <AppShell active="turmas" mobileNav={false}>
       <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER} shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
-        <button type="button" onClick={() => go('prof-turmas')} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+        <button type="button" onClick={() => navigate(rotas.turmas)} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center flex-1 px-2">

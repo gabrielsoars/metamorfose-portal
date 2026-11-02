@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { Plus, Search, ChevronRight, FileText, SlidersHorizontal, Calendar } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { listarSimulados } from '../../services/simuladosService.js';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 
 // A API devolve "YYYY-MM-DD". new Date() interpretaria como UTC e mostraria um dia antes no Brasil.
 const formatarData = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
 
-export function SimuladosListaScreen({ go }) {
+export function SimuladosListaScreen() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [simulados, setSimulados] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,10 +38,10 @@ export function SimuladosListaScreen({ go }) {
   const filtered = simulados.filter((s) => (s.titulo || '').toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <AppShell go={go} active="simulados" onNav={(tab) => {
-      if (tab === 'dashboard') go('prof-dashboard');
-      else if (tab === 'turmas') go('prof-turmas');
-      else if (tab === 'perfil') go('prof-perfil');
+    <AppShell active="simulados" onNav={(tab) => {
+      if (tab === 'dashboard') navigate(rotas.painel());
+      else if (tab === 'turmas') navigate(rotas.turmas);
+      else if (tab === 'perfil') navigate(rotas.perfil);
     }}>
       <header className={`bg-white px-6 ${HEADER_TOP} pb-4 ${GUTTER} shadow-sm z-20 flex justify-between items-center`}>
         <div>
@@ -74,7 +77,7 @@ export function SimuladosListaScreen({ go }) {
           <button
             key={sim.id}
             type="button"
-            onClick={() => go('simulado-painel', sim)}
+            onClick={() => navigate(rotas.simulado(sim.id))}
             className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4 text-left group transition-all hover:shadow-md"
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.orange)}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#f3f4f6')}
@@ -108,7 +111,7 @@ export function SimuladosListaScreen({ go }) {
 
       <button
         type="button"
-        onClick={() => go('simulado-criar')}
+        onClick={() => navigate(rotas.simuladoNovo)}
         aria-label="Novo simulado"
         className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
         style={{ background: C.orange }}

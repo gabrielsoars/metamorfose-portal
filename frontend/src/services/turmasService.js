@@ -18,6 +18,10 @@ export function listarTurmas() {
   return requestJson('/turmas');
 }
 
+export function obterTurma(id) {
+  return requestJson(`/turmas/${id}`);
+}
+
 export function criarTurma(turma) {
   return requestJson('/turmas', {
     method: 'POST',
