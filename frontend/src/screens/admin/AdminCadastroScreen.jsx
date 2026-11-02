@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { criarUsuario } from '../../services/usuariosService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn, Sheet } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 
 export function AdminCadastroScreen({ go, onRefresh }) {
   const [nome, setNome] = useState('');
@@ -31,20 +32,12 @@ export function AdminCadastroScreen({ go, onRefresh }) {
   }
 
   return (
-    <MobileShell>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-30" onClick={() => go('admin-home')} />
-
-      <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-[2rem] z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.12)]" style={{ animation: 'slideUp 0.3s ease-out' }}>
-        <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
-
-        <div className="w-full flex justify-center pt-4 pb-2">
-          <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
-        </div>
-
-        <div className="px-6 pb-8 pt-2">
+    <AppShell variant="admin">
+      <Sheet onClose={() => go('admin-home')} labelledBy="admin-cadastro-titulo">
+        <div className="px-6 pb-8 pt-2 md:pt-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Novo Cadastro</h2>
-            <button type="button" onClick={() => go('admin-home')} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+            <h2 id="admin-cadastro-titulo" className="text-xl font-bold text-gray-900">Novo Cadastro</h2>
+            <button type="button" aria-label="Fechar" onClick={() => go('admin-home')} className="w-10 h-10 md:w-8 md:h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
               <X size={18} />
             </button>
           </div>
@@ -87,7 +80,7 @@ export function AdminCadastroScreen({ go, onRefresh }) {
             <OrangeBtn onClick={handleCreate}>{saving ? 'Criando...' : 'Criar Conta'}</OrangeBtn>
           </div>
         </div>
-      </div>
-    </MobileShell>
+      </Sheet>
+    </AppShell>
   );
 }

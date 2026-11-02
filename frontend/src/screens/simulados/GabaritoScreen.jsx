@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { X, Info, Check } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { obterGabarito, salvarGabarito } from '../../services/simuladosService.js';
-import { MobileShell, OrangeBtn } from '../../components/ui.jsx';
+import { OrangeBtn } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 
 export function GabaritoScreen({ go, simulado }) {
   // Respostas marcadas, indexadas pelo número da questão: { 1: 'A', 2: 'C' }
   const [answers, setAnswers] = useState({});
   const [saving, setSaving] = useState(false);
   const simuladoId = simulado?.id;
+  const totalQuestoes = simulado?.total_questoes;
 
   useEffect(() => {
     if (!simuladoId) return undefined;
@@ -19,6 +22,8 @@ export function GabaritoScreen({ go, simulado }) {
         if (!isMounted) return;
         const salvas = {};
         (Array.isArray(itens) ? itens : []).forEach((item) => {
+          // Questões acima do total atual (simulado reduzido) ficam fora; o backend recusaria salvá-las.
+          if (item.num_questao > totalQuestoes) return;
           salvas[item.num_questao] = item.alt_correta;
         });
         setAnswers(salvas);
@@ -30,16 +35,16 @@ export function GabaritoScreen({ go, simulado }) {
     return () => {
       isMounted = false;
     };
-  }, [simuladoId]);
+  }, [simuladoId, totalQuestoes]);
 
   if (!simulado) {
     return (
-      <MobileShell>
+      <AppShell go={go} active="simulados" mobileNav={false}>
         <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4 text-center">
           <p className="text-sm font-medium text-gray-500">Nenhum simulado selecionado.</p>
           <OrangeBtn onClick={() => go('simulados-lista')}>Voltar para os simulados</OrangeBtn>
         </div>
-      </MobileShell>
+      </AppShell>
     );
   }
 
@@ -65,31 +70,32 @@ export function GabaritoScreen({ go, simulado }) {
   };
 
   return (
-    <MobileShell>
-      <header className="bg-white pt-12 pb-4 px-4 shadow-sm z-20 flex items-center justify-between border-b border-gray-100">
-        <button type="button" onClick={() => go('simulado-painel')} className="w-10 h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
+    <AppShell go={go} active="simulados" mobileNav={false}>
+      <header className={`bg-white ${HEADER_TOP} pb-4 px-4 ${GUTTER} shadow-sm z-20 flex items-center justify-between border-b border-gray-100`}>
+        <button type="button" onClick={() => go('simulado-painel')} className="w-11 h-11 md:w-10 md:h-10 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 transition-colors">
           <X size={24} />
         </button>
         <div className="text-center flex-1 px-2">
           <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-0.5">Gabarito Oficial</p>
           <h1 className="text-lg font-bold text-gray-900 leading-tight">Revisar Gabarito</h1>
         </div>
-        <div className="w-10 h-10" />
+        <div className="w-11 h-11 md:w-10 md:h-10" />
       </header>
 
-      <div className="px-6 py-3 border-b border-orange-100 flex items-start gap-3" style={{ background: C.light }}>
+      <div className={`px-6 py-3 ${GUTTER} border-b border-orange-100 flex items-start gap-3`} style={{ background: C.light }}>
         <Info size={20} className="shrink-0 mt-0.5" style={{ color: C.orange }} />
         <p className="text-xs font-medium leading-relaxed" style={{ color: C.orange }}>
           Marque a alternativa correta de cada questão.
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-32" style={{ scrollbarWidth: 'none' }}>
-        <div className="flex justify-between items-center mb-2 px-1">
+      <div className={`flex-1 overflow-y-auto p-6 space-y-4 pb-32 ${GUTTER}`} style={{ scrollbarWidth: 'none' }}>
+        <div className="flex justify-between items-center mb-2 px-1 md:hidden">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Questão</p>
           <span className="text-[10px] font-bold text-gray-400 uppercase">Alternativas</span>
         </div>
 
+        <div className="grid gap-4 md:grid-cols-2 md:gap-3 xl:grid-cols-3">
         {numeros.map((num) => (
           <div key={num} className="flex items-center justify-between p-3 rounded-xl border shadow-sm bg-white" style={{ borderColor: '#f3f4f6' }}>
             <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ background: '#f3f4f6', color: '#374151' }}>
@@ -100,7 +106,7 @@ export function GabaritoScreen({ go, simulado }) {
                 <label key={opt} className="cursor-pointer">
                   <input type="radio" name={`q${num}`} value={opt} className="sr-only" checked={answers[num] === opt} onChange={() => setAnswers((p) => ({ ...p, [num]: opt }))} />
                   <div
-                    className="w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold transition-all"
+                    className="w-9 h-9 md:w-8 md:h-8 rounded-full border flex items-center justify-center text-xs font-bold transition-all"
                     style={{
                       background: answers[num] === opt ? C.orange : '#fff',
                       borderColor: answers[num] === opt ? C.orange : '#e5e7eb',
@@ -114,16 +120,17 @@ export function GabaritoScreen({ go, simulado }) {
             </div>
           </div>
         ))}
+        </div>
       </div>
 
-      <div className="absolute bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-30">
-        <div className="flex items-center justify-between mb-3 px-1">
+      <div className={`absolute bottom-0 inset-x-0 bg-white border-t border-gray-100 p-4 ${GUTTER} md:flex md:items-center md:justify-between md:gap-6 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-30`}>
+        <div className="flex items-center justify-between mb-3 md:mb-0 px-1">
           <p className="text-xs font-bold text-gray-500">Total de questões: <span className="text-gray-900">{simulado.total_questoes} questões</span></p>
         </div>
-        <OrangeBtn onClick={handleSave}>
+        <OrangeBtn onClick={handleSave} className="md:w-auto md:px-8">
           {saving ? 'Salvando...' : 'Salvar Gabarito Oficial'} <Check size={20} />
         </OrangeBtn>
       </div>
-    </MobileShell>
+    </AppShell>
   );
 }

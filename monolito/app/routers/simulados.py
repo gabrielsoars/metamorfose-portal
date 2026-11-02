@@ -50,6 +50,13 @@ def patch_simulado(simulado_id: int, simulado_in: SimuladoUpdate, db: Session = 
             detail=f"Turma(s) não encontrada(s): {exc.args[0]}"
         )
 
+@router.delete("/{simulado_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_simulado(simulado_id: int, db: Session = Depends(get_db)):
+    try:
+        simulado_service.excluir_simulado(db, simulado_id)
+    except simulado_service.SimuladoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Simulado não encontrado")
+
 @router.get("/{simulado_id}/gabarito", response_model=list[GabaritoOut])
 def get_gabarito(simulado_id: int, db: Session = Depends(get_db)):
     try:

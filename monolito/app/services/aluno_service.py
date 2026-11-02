@@ -35,3 +35,9 @@ def atualizar_aluno(db: Session, aluno_id: int, aluno_in: AlunoUpdate) -> Aluno:
         nova_turma_id = dados_atualizacao["turma_id"]
         buscar_turma(db, nova_turma_id)
     return aluno_repository.atualizar_aluno(db, aluno, dados_atualizacao)
+
+def excluir_aluno(db: Session, aluno_id: int) -> None:
+    aluno = aluno_repository.buscar_por_id(db, aluno_id)
+    if aluno is None:
+        raise AlunoNaoEncontrado(aluno_id)
+    aluno_repository.excluir_aluno(db, aluno)

@@ -134,3 +134,15 @@ def salvar_respostas(db: Session, aluno_id: int, respostas: dict[int, str | None
             ))
 
     db.commit()
+
+def excluir_simulado(db: Session, simulado: Simulado) -> None:
+    """Apaga respostas, gabarito, vínculos com turmas e o simulado.
+
+    As respostas são apagadas explicitamente porque a cascata ON DELETE do banco
+    pode não estar ativa (ex.: SQLite) e o relacionamento usa passive_deletes.
+    """
+    ids_questoes = db.query(Gabarito.id).filter(Gabarito.simulado_id == simulado.id)
+    db.query(RespostaAluno).filter(RespostaAluno.questao_id.in_(ids_questoes)).delete(synchronize_session=False)
+    db.expire_all()
+    db.delete(simulado)
+    db.commit()

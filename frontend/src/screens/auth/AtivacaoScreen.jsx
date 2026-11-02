@@ -1,15 +1,16 @@
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { MobileShell, OrangeBtn, Input } from '../../components/ui.jsx';
+import { OrangeBtn, Input } from '../../components/ui.jsx';
+import { AppShell } from '../../components/AppShell.jsx';
 
 export function AtivacaoScreen({ go }) {
   return (
-    <MobileShell>
-      <main className="flex flex-col h-full p-6 sm:p-8">
+    <AppShell variant="auth">
+      <main className="flex-1 flex flex-col p-6 md:p-8">
         <button
           type="button"
           onClick={() => go('login')}
-          className="flex items-center text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors mt-4 sm:mt-0 mb-6 w-fit"
+          className="flex items-center text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors mt-4 md:mt-0 mb-6 w-fit"
         >
           <ArrowLeft size={18} className="mr-1" /> Voltar
         </button>
@@ -51,6 +52,6 @@ export function AtivacaoScreen({ go }) {
           </p>
         </div>
       </main>
-    </MobileShell>
+    </AppShell>
   );
 }
