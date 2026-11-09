@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { FALLBACK_PROFESSORS, FALLBACK_TURMAS } from './data/constants.js';
 import { listarUsuarios, normalizeUsuario } from './services/usuariosService.js';
 import { listarTurmas, normalizeTurma } from './services/turmasService.js';
-import { LoginScreen, AtivacaoScreen } from './screens/auth/index.js';
+import { LoginScreen, AtivacaoScreen, RecuperarSenhaScreen, RedefinirSenhaScreen } from './screens/auth/index.js';
 import { AdminHomeScreen, AdminGestaoScreen, AdminCadastroScreen } from './screens/admin/index.js';
 import { ProfDashboardScreen, TurmasScreen, TurmaDetalhesScreen, TurmaCadastroScreen, ProfPerfilScreen } from './screens/professor/index.js';
 import { QuestoesErroScreen } from './screens/professor/QuestoesErroScreen.jsx';
@@ -12,6 +12,8 @@ import { NaoEncontradoScreen } from './screens/NaoEncontradoScreen.jsx';
 import { rotas } from './routes/rotas.js';
 import { useTitulo } from './routes/titulo.js';
 import { RotaPrivada } from './routes/RotaPrivada.jsx';
+import { SessaoProvider, rotaInicial, useSessao } from './routes/sessao.jsx';
+import { ehAdmin } from './services/sessao.js';
 import { CarregaTurma, CarregaProfessor, CarregaSimulado, CarregaAluno } from './routes/carregadores.jsx';
 export { normalizeUsuario } from './services/usuariosService.js';
 export { normalizeTurma } from './services/turmasService.js';
@@ -24,13 +26,30 @@ function Pagina({ titulo, children }) {
 }
 
 export default function App() {
+  return (
+    <SessaoProvider>
+      <AppRotas />
+    </SessaoProvider>
+  );
+}
+
+// A raiz vai para o início do perfil logado, ou para o login.
+function Inicio() {
+  const { sessao } = useSessao();
+  return <Navigate to={sessao ? rotaInicial(sessao.usuario) : rotas.login} replace />;
+}
+
+function AppRotas() {
+  const { sessao } = useSessao();
+  const admin = ehAdmin(sessao?.usuario);
   const [usuarios, setUsuarios] = useState(FALLBACK_PROFESSORS);
   const [turmas, setTurmas] = useState(FALLBACK_TURMAS);
 
   const loadData = async () => {
     try {
       const [usuariosResponse, turmasResponse] = await Promise.all([
-        listarUsuarios().catch(() => FALLBACK_PROFESSORS),
+        // A lista de usuários é só do admin; para o professor a API responderia 403.
+        admin ? listarUsuarios().catch(() => FALLBACK_PROFESSORS) : [],
         listarTurmas().catch(() => FALLBACK_TURMAS),
       ]);
 
@@ -46,21 +65,24 @@ export default function App() {
     }
   };
 
+  // Carrega ao entrar (e ao trocar de usuário): sem sessão a API recusaria as chamadas.
   useEffect(() => {
-    loadData();
-  }, []);
+    if (sessao) loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessao?.token]);
 
   // Uma rota por tela (mapa de URLs do P-14). As telas de um registro têm `key` própria: ao trocar
   // de tela o carregador é montado de novo e busca o registro atualizado (ex.: o painel depois de
   // editar o simulado), em vez de reaproveitar o da tela anterior.
   return (
     <Routes>
-      {/* Sem login real, o início é o login. Com autenticação, a raiz pode ir para a home do perfil. */}
-      <Route path={rotas.inicio} element={<Navigate to={rotas.login} replace />} />
+      <Route path={rotas.inicio} element={<Inicio />} />
       <Route path={rotas.login} element={<Pagina titulo="Entrar"><LoginScreen /></Pagina>} />
       <Route path={rotas.ativacao} element={<Pagina titulo="Ativar conta"><AtivacaoScreen /></Pagina>} />
+      <Route path={rotas.recuperarSenha} element={<Pagina titulo="Esqueceu a senha"><RecuperarSenhaScreen /></Pagina>} />
+      <Route path={rotas.redefinirSenha} element={<Pagina titulo="Redefinir senha"><RedefinirSenhaScreen /></Pagina>} />
 
-      <Route element={<RotaPrivada />}>
+      <Route element={<RotaPrivada somenteAdmin />}>
         <Route path={rotas.admin} element={<Pagina titulo="Usuários"><AdminHomeScreen professors={usuarios} onRefresh={loadData} /></Pagina>} />
         <Route path={rotas.professorNovo} element={<Pagina titulo="Novo professor"><AdminCadastroScreen onRefresh={loadData} /></Pagina>} />
         <Route
@@ -71,7 +93,9 @@ export default function App() {
             </CarregaProfessor>
           }
         />
+      </Route>
 
+      <Route element={<RotaPrivada />}>
         <Route path="/painel" element={<Pagina titulo="Início"><ProfDashboardScreen /></Pagina>} />
         <Route path="/painel/questoes-erro" element={<Pagina titulo="Questões com maior erro"><QuestoesErroScreen /></Pagina>} />
 

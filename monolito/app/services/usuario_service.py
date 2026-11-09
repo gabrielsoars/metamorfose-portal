@@ -13,6 +13,9 @@ class EmailJaCadastrado(Exception):
 class UsuarioNaoPodeSerAtivado(Exception):
     pass
 
+class UltimoAdmin(Exception):
+    pass
+
 logger = logging.getLogger(__name__)
 
 def listar_usuarios(db: Session) -> list[Usuario]:
@@ -36,6 +39,15 @@ def atualizar_usuario(db: Session, usuario_id: int, usuario_in: UsuarioUpdate) -
 
     if dados_atualizacao.get("ativo") is True and usuario.senha_hash is None:
         raise UsuarioNaoPodeSerAtivado("Não é permitido ativar um usuário que ainda não concluiu o cadastro da senha por e-mail.")
+
+    # O sistema não pode ficar sem nenhum admin capaz de entrar
+    era_admin_ativo = usuario.tipo == TipoUsuario.ADMIN and usuario.ativo
+    continua_admin_ativo = (
+        dados_atualizacao.get("tipo", usuario.tipo) == TipoUsuario.ADMIN
+        and dados_atualizacao.get("ativo", usuario.ativo)
+    )
+    if era_admin_ativo and not continua_admin_ativo and not usuario_repository.existe_outro_admin_ativo(db, usuario.id):
+        raise UltimoAdmin("Não é possível rebaixar ou desativar o último administrador ativo.")
 
     return usuario_repository.atualizar_usuario(db, usuario, dados_atualizacao)
 

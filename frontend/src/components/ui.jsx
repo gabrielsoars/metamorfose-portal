@@ -1,12 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { C } from '../data/constants.js';
 import { useEscape } from './hooks.js';
 
-export function OrangeBtn({ children, onClick, className = "" }) {
+export function OrangeBtn({ children, onClick, className = "", type, disabled = false }) {
   return (
     <button
+      type={type}
       onClick={onClick}
-      className={`w-full text-white font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-all flex justify-center items-center gap-2 ${className}`}
+      disabled={disabled}
+      className={`w-full text-white font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-all flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-wait ${className}`}
       style={{ background: C.orange }}
       onMouseEnter={(e) => (e.currentTarget.style.background = C.orangeHover)}
       onMouseLeave={(e) => (e.currentTarget.style.background = C.orange)}
@@ -16,11 +18,15 @@ export function OrangeBtn({ children, onClick, className = "" }) {
   );
 }
 
-export function Input({ label, type = "text", placeholder, defaultValue, className = "" }) {
+// Demais props (value, onChange, autoComplete...) vão direto para o <input>.
+export function Input({ label, type = "text", placeholder, defaultValue, className = "", ...props }) {
+  const id = useId();
   return (
     <div>
-      <label className="block text-sm font-semibold text-gray-900 mb-1">{label}</label>
+      <label htmlFor={id} className="block text-sm font-semibold text-gray-900 mb-1">{label}</label>
       <input
+        {...props}
+        id={id}
         type={type}
         placeholder={placeholder}
         defaultValue={defaultValue}

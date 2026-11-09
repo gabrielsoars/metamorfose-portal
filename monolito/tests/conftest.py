@@ -6,8 +6,10 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.main import app
+from app.core.dependencias import obter_usuario_atual
 from app.db.base import Base
 from app.db.session import get_db
+from app.models.usuario import TipoUsuario, Usuario
 
 # 1. Cria um banco SQLite temporário na memória RAM
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -39,8 +41,7 @@ def db_session():
         # Apaga tudo da memória depois de cada teste
         Base.metadata.drop_all(bind=engine_test)
 
-@pytest.fixture(scope="function")
-def client(db_session):
+def _usar_banco_de_teste(db_session):
     # Sobrescreve a dependência get_db do FastAPI para usar o SQLite temporário
     def override_get_db():
         try:
@@ -49,6 +50,21 @@ def client(db_session):
             pass
 
     app.dependency_overrides[get_db] = override_get_db
+
+@pytest.fixture(scope="function")
+def client(db_session):
+    # Já entra como admin, sem token: os testes de regra de negócio não precisam fazer login.
+    # O admin é fictício (não está no banco), para não alterar contagens nem o admin inicial.
+    _usar_banco_de_teste(db_session)
+    admin = Usuario(id=0, nome="Admin de teste", email="admin-teste@escola.com", tipo=TipoUsuario.ADMIN, ativo=True)
+    app.dependency_overrides[obter_usuario_atual] = lambda: admin
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+@pytest.fixture(scope="function")
+def client_anonimo(db_session):
+    # Autenticação real: cada requisição precisa mandar o próprio token
+    _usar_banco_de_teste(db_session)
     yield TestClient(app)
     app.dependency_overrides.clear()
 

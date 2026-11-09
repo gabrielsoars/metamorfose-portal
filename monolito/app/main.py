@@ -1,11 +1,12 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import alunos, auth, turmas, usuarios, simulados
 from .db.base import Base
 from .db.session import engine, SessionLocal
 from .core.config import get_settings
+from .core.dependencias import exigir_admin, obter_usuario_atual
 from .services import usuario_service
 
 from .models import aluno, turma, usuario, simulado
@@ -35,10 +36,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(turmas.router)
-app.include_router(alunos.router)
-app.include_router(usuarios.router)
-app.include_router(simulados.router)
+# Tudo exige login; a gestão de usuários é só para admin. As rotas de /auth são públicas.
+app.include_router(turmas.router, dependencies=[Depends(obter_usuario_atual)])
+app.include_router(alunos.router, dependencies=[Depends(obter_usuario_atual)])
+app.include_router(usuarios.router, dependencies=[Depends(exigir_admin)])
+app.include_router(simulados.router, dependencies=[Depends(obter_usuario_atual)])
 app.include_router(auth.router)
 
 

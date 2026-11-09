@@ -5,7 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from ..db.session import get_db
-from ..models.usuario import Usuario
+from ..models.usuario import TipoUsuario, Usuario
 from ..repositories import usuario_repository
 from . import security
 
@@ -36,4 +36,13 @@ def obter_usuario_atual(
     usuario = usuario_repository.buscar_por_id(db, usuario_id)
     if usuario is None or not usuario.ativo:
         raise _nao_autorizado()
+    return usuario
+
+
+def exigir_admin(usuario: Usuario = Depends(obter_usuario_atual)) -> Usuario:
+    if usuario.tipo != TipoUsuario.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito a administradores.",
+        )
     return usuario

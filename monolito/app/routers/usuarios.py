@@ -35,7 +35,7 @@ def patch_usuario(usuario_id: int, usuario_in: UsuarioUpdate, db: Session = Depe
         if usuario is None:
             raise HTTPException(status_code=404, detail="Usuário não encontrado")
         return usuario
-    except usuario_service.UsuarioNaoPodeSerAtivado as err:
+    except (usuario_service.UsuarioNaoPodeSerAtivado, usuario_service.UltimoAdmin) as err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail=str(err)

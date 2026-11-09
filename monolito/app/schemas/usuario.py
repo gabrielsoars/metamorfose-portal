@@ -27,7 +27,8 @@ class UsuarioUpdate(BaseModel):
 class AtivarContaRequest(BaseModel):
     email: str
     codigo: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
-    senha: str = Field(min_length=8)
+    # bcrypt considera só os primeiros 72 bytes
+    senha: str = Field(min_length=8, max_length=72)
 
 class ReenviarAtivacaoRequest(BaseModel):
     email: str
@@ -38,7 +39,8 @@ class EsqueciSenhaRequest(BaseModel):
 class RedefinirSenhaRequest(BaseModel):
     email: str
     codigo: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
-    senha: str = Field(min_length=8)
+    # bcrypt considera só os primeiros 72 bytes
+    senha: str = Field(min_length=8, max_length=72)
 
 class LoginRequest(BaseModel):
     email: str

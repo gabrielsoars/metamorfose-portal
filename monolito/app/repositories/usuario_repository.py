@@ -15,6 +15,13 @@ def buscar_por_email(db:Session, email: str) -> Usuario | None:
 def existe_admin(db: Session) -> bool:
     return db.query(Usuario).filter(Usuario.tipo == TipoUsuario.ADMIN).first() is not None
 
+def existe_outro_admin_ativo(db: Session, usuario_id: int) -> bool:
+    return db.query(Usuario).filter(
+        Usuario.tipo == TipoUsuario.ADMIN,
+        Usuario.ativo.is_(True),
+        Usuario.id != usuario_id,
+    ).first() is not None
+
 def criar_usuario(db: Session, usuario_in: UsuarioCreate) -> Usuario:
     novo_usuario = Usuario(
         nome=usuario_in.nome,

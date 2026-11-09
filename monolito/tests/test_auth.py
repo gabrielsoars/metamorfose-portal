@@ -197,7 +197,8 @@ def test_reenviar_ativacao_email_inexistente_nao_revela(client, codigos_enviados
 
 # ── Usuário logado (/auth/me) ─────────────────────────────────────────────────
 
-def test_me_retorna_usuario_do_token(client, db_session, chaves_jwt):
+def test_me_retorna_usuario_do_token(client_anonimo, db_session, chaves_jwt):
+    client = client_anonimo
     criar_usuario_com_senha(db_session)
     token = login(client).json()["access_token"]
 
@@ -210,16 +211,19 @@ def test_me_retorna_usuario_do_token(client, db_session, chaves_jwt):
     assert "senha_hash" not in data
 
 
-def test_me_sem_token(client, chaves_jwt):
+def test_me_sem_token(client_anonimo, chaves_jwt):
+    client = client_anonimo
     assert client.get("/auth/me").status_code == 401
 
 
-def test_me_token_invalido(client, chaves_jwt):
+def test_me_token_invalido(client_anonimo, chaves_jwt):
+    client = client_anonimo
     response = client.get("/auth/me", headers={"Authorization": "Bearer nao-e-um-jwt"})
     assert response.status_code == 401
 
 
-def test_me_token_expirado(client, db_session, chaves_jwt, monkeypatch):
+def test_me_token_expirado(client_anonimo, db_session, chaves_jwt, monkeypatch):
+    client = client_anonimo
     usuario = criar_usuario_com_senha(db_session)
     monkeypatch.setenv("JWT_EXPIRE_MINUTES", "-1")
     from app.core.config import get_settings
@@ -231,7 +235,8 @@ def test_me_token_expirado(client, db_session, chaves_jwt, monkeypatch):
     assert response.status_code == 401
 
 
-def test_me_usuario_desativado_depois_do_login(client, db_session, chaves_jwt):
+def test_me_usuario_desativado_depois_do_login(client_anonimo, db_session, chaves_jwt):
+    client = client_anonimo
     usuario = criar_usuario_com_senha(db_session)
     token = login(client).json()["access_token"]
     usuario.ativo = False
@@ -469,3 +474,26 @@ def test_admin_inicial_promove_usuario_existente(client, db_session, codigos_env
     assert admin.id == usuario_id
     assert admin.tipo == TipoUsuario.ADMIN
     assert db_session.query(Usuario).count() == 1
+
+
+def test_admin_inicial_promovido_sem_senha_nao_entra_sem_ativar(client, db_session, codigos_enviados, chaves_jwt):
+    # Promover a admin não pula o primeiro acesso: sem senha cadastrada, o login falha
+    from app.services import usuario_service
+    cadastrar_professor(client, email="coord@escola.com")
+    usuario_service.garantir_admin_inicial(db_session, "coord@escola.com", "Coordenação")
+
+    assert login(client, email="coord@escola.com", senha="qualquer-senha").status_code == 401
+
+    response = client.post("/auth/ativar", json={
+        "email": "coord@escola.com", "codigo": codigos_enviados["coord@escola.com"], "senha": "senha-do-admin",
+    })
+    assert response.status_code == 204
+    assert login(client, email="coord@escola.com", senha="senha-do-admin").status_code == 200
+
+
+def test_senha_acima_de_72_caracteres_e_recusada(client, codigos_enviados):
+    cadastrar_professor(client)
+    response = client.post("/auth/ativar", json={
+        "email": "prof@escola.com", "codigo": codigos_enviados["prof@escola.com"], "senha": "a" * 73,
+    })
+    assert response.status_code == 422
