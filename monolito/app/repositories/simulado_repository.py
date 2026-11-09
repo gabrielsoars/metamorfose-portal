@@ -1,3 +1,4 @@
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from ..models.aluno import Aluno
@@ -18,8 +19,14 @@ def criar_simulado(db: Session, simulado_in: SimuladoCreate, turmas: list[Turma]
     db.refresh(novo_simulado)
     return novo_simulado
 
-def listar_simulado(db: Session) -> list[Simulado]:
-    return db.query(Simulado).order_by(Simulado.data_aplicacao).all()
+def listar_simulado(db: Session, turma_id: int | None = None) -> list[Simulado]:
+    query = db.query(Simulado)
+    if turma_id is not None:
+        query = (
+            query.join(simulado_turma, simulado_turma.c.simulado_id == Simulado.id)
+            .filter(simulado_turma.c.turma_id == turma_id)
+        )
+    return query.order_by(Simulado.data_aplicacao, Simulado.id).all()
 
 def obter_simulado(db: Session, simulado_id: int) -> Simulado | None:
     return db.query(Simulado).filter(Simulado.id == simulado_id).first()
@@ -85,12 +92,35 @@ def _query_alunos_do_simulado(db: Session, simulado_id: int):
         .filter(simulado_turma.c.simulado_id == simulado_id)
     )
 
-def listar_alunos_do_simulado(db: Session, simulado_id: int) -> list[tuple[Aluno, Turma]]:
-    return (
-        _query_alunos_do_simulado(db, simulado_id)
-        .order_by(Aluno.nome, Aluno.id)
-        .all()
+def listar_alunos_do_simulado(
+    db: Session,
+    simulado_id: int,
+    turma_id: int | None = None
+) -> list[tuple[Aluno, Turma]]:
+    query = _query_alunos_do_simulado(db, simulado_id)
+    if turma_id is not None:
+        query = query.filter(Turma.id == turma_id)
+    return query.order_by(Aluno.nome, Aluno.id).all()
+
+def listar_simulados_anteriores(
+    db: Session,
+    simulado: Simulado,
+    turma_id: int | None = None
+) -> list[Simulado]:
+    """Simulados aplicados antes de `simulado` (mesma data: desempata pelo id), do mais recente
+    para o mais antigo. Com `turma_id`, só os simulados vinculados a essa turma."""
+    query = db.query(Simulado).filter(
+        or_(
+            Simulado.data_aplicacao < simulado.data_aplicacao,
+            and_(Simulado.data_aplicacao == simulado.data_aplicacao, Simulado.id < simulado.id),
+        )
     )
+    if turma_id is not None:
+        query = (
+            query.join(simulado_turma, simulado_turma.c.simulado_id == Simulado.id)
+            .filter(simulado_turma.c.turma_id == turma_id)
+        )
+    return query.order_by(Simulado.data_aplicacao.desc(), Simulado.id.desc()).all()
 
 def buscar_aluno_do_simulado(db: Session, simulado_id: int, aluno_id: int) -> tuple[Aluno, Turma] | None:
     return (

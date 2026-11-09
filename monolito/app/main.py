@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import alunos, auth, turmas, usuarios, simulados
+from .routers import alunos, auth, turmas, usuarios, simulados, estatisticas
 from .db.base import Base
 from .db.session import engine, SessionLocal
 from .core.config import get_settings
@@ -42,6 +42,7 @@ app.include_router(alunos.router, dependencies=[Depends(obter_usuario_atual)])
 app.include_router(usuarios.router, dependencies=[Depends(exigir_admin)])
 app.include_router(simulados.router, dependencies=[Depends(obter_usuario_atual)])
 app.include_router(auth.router)
+app.include_router(estatisticas.router)
 
 
 @app.get("/")

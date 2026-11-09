@@ -1,8 +1,10 @@
-import { LogOut, Bell, TrendingUp } from 'lucide-react';
+import { LogOut, Bell } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 import { useQuestoesErro, FiltrosQuestoes, QuestoesErroLista } from './QuestoesErroScreen.jsx';
+import { MediaAcertosCard } from './MediaAcertosCard.jsx';
+import { HistoricoMensalCard } from './HistoricoMensalCard.jsx';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { rotas, filtroDaUrl } from '../../routes/rotas.js';
 import { useSair } from '../../routes/sessao.jsx';
@@ -13,13 +15,6 @@ export function ProfDashboardScreen() {
   const [searchParams] = useSearchParams();
   // O filtro fica na URL (?turma=&simulado=): sobrevive ao F5 e ao voltar. Trocar o filtro substitui a entrada.
   const questoes = useQuestoesErro(filtroDaUrl(searchParams), (novo) => navigate(rotas.painel(novo), { replace: true }));
-
-  const bars = [
-    { month: 'Mar', pct: 45, height: 48 },
-    { month: 'Abr', pct: 52, height: 64 },
-    { month: 'Mai', pct: 48, height: 52 },
-    { month: 'Jun', pct: 68, height: 96, current: true },
-  ];
 
   return (
     <AppShell active="dashboard" onNav={(tab) => {
@@ -59,17 +54,7 @@ export function ProfDashboardScreen() {
       </div>
 
       <div className={`flex-1 overflow-y-auto p-6 pb-8 ${GUTTER} grid content-start gap-5 md:grid-cols-2 lg:gap-6`} style={{ scrollbarWidth: 'none' }}>
-        <div className="md:col-span-2 rounded-2xl p-5 text-white shadow-md relative overflow-hidden" style={{ background: C.orange }}>
-          <svg className="absolute -right-6 -bottom-6 w-32 h-32 text-white opacity-10" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
-          <p className="text-white/80 text-xs font-bold uppercase tracking-wider mb-1">Média de Acertos</p>
-          <div className="flex items-end gap-2">
-            <h2 className="text-4xl font-black leading-none">68%</h2>
-            <span className="flex items-center text-xs font-bold bg-white/20 px-2 py-0.5 rounded-md mb-1">
-              <TrendingUp size={12} className="mr-1" /> +5%
-            </span>
-          </div>
-          <p className="text-white/70 text-[10px] mt-2 font-medium">Comparado ao simulado anterior</p>
-        </div>
+        <MediaAcertosCard q={questoes} />
 
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-4">
@@ -87,18 +72,7 @@ export function ProfDashboardScreen() {
           <QuestoesErroLista q={questoes} limite={3} />
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-          <h3 className="font-bold text-gray-900 text-sm mb-4">Desempenho por Simulado</h3>
-          <div className="h-32 flex items-end gap-3 px-2">
-            {bars.map(({ month, pct, height, current }) => (
-              <div key={month} className="flex-1 flex flex-col items-center group">
-                <span className="text-[10px] font-bold mb-1" style={{ color: current ? C.orange : '#9ca3af' }}>{pct}%</span>
-                <div className="w-full rounded-t-md transition-colors" style={{ height, background: current ? C.yellow : '#e5e7eb' }} />
-                <p className="text-[9px] font-bold mt-2" style={{ color: current ? C.orange : '#9ca3af' }}>{month}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <HistoricoMensalCard q={questoes} />
       </div>
     </AppShell>
   );
