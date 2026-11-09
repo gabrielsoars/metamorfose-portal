@@ -47,3 +47,42 @@ img {
 #root {
   min-height: 100vh;
 }
+
+/* Foco visível ao navegar pelo teclado (Tab). Campos que já desenham o próprio anel
+   de foco via onFocus (inline box-shadow) ficam de fora para não ter anel duplo. */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+[role='button']:focus-visible,
+[role='menuitem']:focus-visible,
+input:not(.sr-only):not([style*='box-shadow']):focus-visible {
+  outline: 2px solid #c45615;
+  outline-offset: 2px;
+}
+
+/* Alternativas (rádios escondidos com sr-only): o anel aparece na bolinha. */
+label:has(> input.sr-only:focus-visible) > div {
+  outline: 2px solid #c45615;
+  outline-offset: 2px;
+}
+
+/* Entrada dos painéis (Sheet): sobe de baixo no celular, aparece no centro a partir do tablet. */
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.sheet-anim {
+  animation: slideUp 0.3s ease-out;
+}
+
+@media (min-width: 768px) {
+  .sheet-anim {
+    animation: popIn 0.15s ease-out;
+  }
+}

@@ -18,9 +18,24 @@ export function listarTurmas() {
   return requestJson('/turmas');
 }
 
+export function obterTurma(id) {
+  return requestJson(`/turmas/${id}`);
+}
+
 export function criarTurma(turma) {
   return requestJson('/turmas', {
     method: 'POST',
     body: JSON.stringify(turma),
   });
+}
+
+export function atualizarTurma(id, turma) {
+  return requestJson(`/turmas/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(turma),
+  });
+}
+
+export function excluirTurma(id) {
+  return requestJson(`/turmas/${id}`, { method: 'DELETE' });
 }

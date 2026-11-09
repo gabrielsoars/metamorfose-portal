@@ -1,20 +1,49 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Search, ChevronRight, FileText, SlidersHorizontal, Calendar } from 'lucide-react';
 import { C } from '../../data/constants.js';
-import { MobileShell, BottomNav } from '../../components/ui.jsx';
+import { listarSimulados } from '../../services/simuladosService.js';
+import { useNavigate } from 'react-router-dom';
+import { rotas } from '../../routes/rotas.js';
+import { AppShell } from '../../components/AppShell.jsx';
+import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 
-const simuladosList = [
-  { id: 1, title: '1º Simulado ENEM - Maio', date: '05 de Maio de 2026', turmas: ['Extensivo', 'Intensivo'], highlight: true },
-  { id: 2, title: 'Prova Diagnóstica - Exatas', date: '12 de Março de 2026', turmas: ['Reforço Matemática'], highlight: false },
-];
+// A API devolve "YYYY-MM-DD". new Date() interpretaria como UTC e mostraria um dia antes no Brasil.
+const formatarData = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
 
-export function SimuladosListaScreen({ go }) {
+export function SimuladosListaScreen() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const filtered = simuladosList.filter((s) => s.title.toLowerCase().includes(search.toLowerCase()));
+  const [simulados, setSimulados] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    listarSimulados()
+      .then((lista) => {
+        if (isMounted) setSimulados(Array.isArray(lista) ? lista : []);
+      })
+      .catch((error) => {
+        if (isMounted) window.alert(error.message || 'Não foi possível carregar os simulados.');
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filtered = simulados.filter((s) => (s.titulo || '').toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <MobileShell>
-      <header className="bg-white px-6 pt-12 pb-4 shadow-sm z-20 flex justify-between items-center">
+    <AppShell active="simulados" onNav={(tab) => {
+      if (tab === 'dashboard') navigate(rotas.painel());
+      else if (tab === 'turmas') navigate(rotas.turmas);
+      else if (tab === 'perfil') navigate(rotas.perfil);
+    }}>
+      <header className={`bg-white px-6 ${HEADER_TOP} pb-4 ${GUTTER} shadow-sm z-20 flex justify-between items-center`}>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Gestão de Provas</p>
           <h1 className="text-2xl font-bold text-gray-900 leading-none">Meus Simulados</h1>
@@ -22,8 +51,8 @@ export function SimuladosListaScreen({ go }) {
         <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-black font-bold text-sm" style={{ background: C.yellow }}>P</div>
       </header>
 
-      <div className="bg-white px-6 pb-4 border-b border-gray-100 z-10 flex gap-2">
-        <div className="relative flex-1">
+      <div className={`bg-white px-6 pb-4 ${GUTTER} border-b border-gray-100 z-10 flex gap-2`}>
+        <div className="relative flex-1 lg:flex-none lg:w-full lg:max-w-md">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -33,17 +62,22 @@ export function SimuladosListaScreen({ go }) {
             className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-xl border-transparent outline-none text-sm font-medium"
           />
         </div>
-        <button type="button" className="w-11 h-11 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 hover:text-orange-500 transition-colors">
+        <button type="button" aria-label="Filtros" className="w-11 h-11 shrink-0 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 hover:text-orange-500 transition-colors">
           <SlidersHorizontal size={20} />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-28" style={{ scrollbarWidth: 'none' }}>
+      <div className={`flex-1 overflow-y-auto p-6 pb-24 ${GUTTER} grid content-start gap-4 md:grid-cols-2 xl:grid-cols-3`} style={{ scrollbarWidth: 'none' }}>
+        {filtered.length === 0 && (
+          <p className="col-span-full text-center text-sm font-medium text-gray-400 py-16">
+            {loading ? 'Carregando...' : 'Nenhum simulado cadastrado'}
+          </p>
+        )}
         {filtered.map((sim) => (
           <button
             key={sim.id}
             type="button"
-            onClick={() => go('simulado-painel')}
+            onClick={() => navigate(rotas.simulado(sim.id))}
             className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4 text-left group transition-all hover:shadow-md"
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.orange)}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#f3f4f6')}
@@ -59,14 +93,14 @@ export function SimuladosListaScreen({ go }) {
               <FileText size={24} />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-gray-900 text-[15px] leading-tight mb-1">{sim.title}</h3>
+              <h3 className="font-bold text-gray-900 text-[15px] leading-tight mb-1">{sim.titulo}</h3>
               <div className="flex items-center gap-1.5 text-gray-500 mb-2.5">
                 <Calendar size={12} strokeWidth={2.5} />
-                <span className="text-[11px] font-semibold uppercase tracking-wide">{sim.date}</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wide">{formatarData(sim.data_aplicacao)}</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {sim.turmas.map((t) => (
-                  <span key={t} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-md">{t}</span>
+                {(sim.turmas || []).map((t) => (
+                  <span key={t.id} className="px-2 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-md">{t.nome}</span>
                 ))}
               </div>
             </div>
@@ -77,18 +111,13 @@ export function SimuladosListaScreen({ go }) {
 
       <button
         type="button"
-        onClick={() => go('simulado-criar')}
-        className="absolute bottom-24 right-6 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
+        onClick={() => navigate(rotas.simuladoNovo)}
+        aria-label="Novo simulado"
+        className="absolute bottom-6 right-6 lg:bottom-8 lg:right-8 w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
         style={{ background: C.orange }}
       >
         <Plus size={28} />
       </button>
-
-      <BottomNav active="simulados" onNav={(tab) => {
-        if (tab === 'dashboard') go('prof-dashboard');
-        else if (tab === 'turmas') go('prof-turmas');
-        else if (tab === 'perfil') go('prof-perfil');
-      }} />
-    </MobileShell>
+    </AppShell>
   );
 }

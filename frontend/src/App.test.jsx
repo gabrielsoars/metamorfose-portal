@@ -1,10 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import App, { normalizeUsuario, normalizeTurma } from './App'
+import { normalizeUsuario, normalizeTurma } from './App'
+import { renderApp, urlAtual } from './test/rotas'
 
 describe('App', () => {
   beforeEach(() => {
-    sessionStorage.clear()
     vi.stubGlobal('fetch', vi.fn(async (input) => {
       const url = String(input)
 
@@ -43,20 +43,22 @@ describe('App', () => {
   it('renderiza a tela de login e permite acessar o painel admin', async () => {
     const user = userEvent.setup()
 
-    render(<App />)
+    const router = renderApp('/')
 
     expect(screen.getByText('Metamorfose')).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/login')
     expect(screen.getByText('Plataforma de Correção de Simulados')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /entrar como admin/i }))
 
     expect(await screen.findByRole('heading', { name: /usuários/i })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/admin')
   })
 
   it('carrega usuários e turmas reais do backend e usa os dados integrados', async () => {
     const user = userEvent.setup()
 
-    render(<App />)
+    renderApp('/')
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith('http://localhost:8000/usuarios', expect.objectContaining({ method: 'GET' }))

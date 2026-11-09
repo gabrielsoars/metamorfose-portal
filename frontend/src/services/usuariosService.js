@@ -14,6 +14,10 @@ export function listarUsuarios() {
   return requestJson('/usuarios');
 }
 
+export function obterUsuario(id) {
+  return requestJson(`/usuarios/${id}`);
+}
+
 export function criarUsuario(usuario) {
   return requestJson('/usuarios', {
     method: 'POST',
