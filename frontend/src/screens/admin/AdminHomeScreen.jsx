@@ -3,6 +3,7 @@ import { Plus, Search, LogOut, Users, ChevronRight, ChevronDown } from 'lucide-r
 import { C, FALLBACK_PROFESSORS } from '../../data/constants.js';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
+import { useSair } from '../../routes/sessao.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 
@@ -11,6 +12,7 @@ const COLUNAS = 'lg:grid-cols-[2.5rem_minmax(0,1.4fr)_minmax(0,1.6fr)_minmax(0,1
 
 export function AdminHomeScreen({ professors }) {
   const navigate = useNavigate();
+  const sair = useSair();
   const [search, setSearch] = useState('');
   const [subject, setSubject] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -31,7 +33,7 @@ export function AdminHomeScreen({ professors }) {
         </div>
         <button
           type="button"
-          onClick={() => navigate(rotas.login, { replace: true })}
+          onClick={sair}
           aria-label="Sair"
           title="Sair"
           className="w-11 h-11 md:w-10 md:h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors"

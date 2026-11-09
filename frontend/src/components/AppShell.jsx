@@ -2,6 +2,7 @@ import { LayoutDashboard, Users, FileText, User, LogOut, Camera, CheckCircle2, B
 import { useNavigate } from 'react-router-dom';
 import { C } from '../data/constants.js';
 import { rotas } from '../routes/rotas.js';
+import { useSair } from '../routes/sessao.jsx';
 
 const FONT = { fontFamily: "'Inter', sans-serif" };
 
@@ -165,6 +166,7 @@ function BottomNav({ active, onNav }) {
  */
 export function AppShell({ variant = 'professor', active = null, onNav, mobileNav = true, children }) {
   const navigate = useNavigate();
+  const sair = useSair();
 
   if (variant === 'auth') {
     return (
@@ -193,7 +195,7 @@ export function AppShell({ variant = 'professor', active = null, onNav, mobileNa
 
   return (
     <div className="h-dvh flex overflow-hidden bg-gray-50" style={FONT}>
-      <Sidebar active={active} onNav={handleNav} onSair={() => navigate(rotas.login, { replace: true })} />
+      <Sidebar active={active} onNav={handleNav} onSair={sair} />
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="flex-1 min-h-0 flex flex-col relative overflow-hidden">
           {children}

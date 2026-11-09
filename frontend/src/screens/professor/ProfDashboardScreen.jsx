@@ -5,9 +5,11 @@ import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 import { useQuestoesErro, FiltrosQuestoes, QuestoesErroLista } from './QuestoesErroScreen.jsx';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { rotas, filtroDaUrl } from '../../routes/rotas.js';
+import { useSair } from '../../routes/sessao.jsx';
 
 export function ProfDashboardScreen() {
   const navigate = useNavigate();
+  const sair = useSair();
   const [searchParams] = useSearchParams();
   // O filtro fica na URL (?turma=&simulado=): sobrevive ao F5 e ao voltar. Trocar o filtro substitui a entrada.
   const questoes = useQuestoesErro(filtroDaUrl(searchParams), (novo) => navigate(rotas.painel(novo), { replace: true }));
@@ -42,7 +44,7 @@ export function ProfDashboardScreen() {
           </button>
           <button
             type="button"
-            onClick={() => navigate(rotas.login, { replace: true })}
+            onClick={sair}
             aria-label="Sair"
             className="w-11 h-11 md:w-10 md:h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
             title="Sair"

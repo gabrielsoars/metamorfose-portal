@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from '../App'
 import userEvent from '@testing-library/user-event'
 import { renderApp, urlAtual } from '../test/rotas'
+import { PROFESSOR, entrarComo, semSessao } from '../test/sessao'
 
 // A barra lateral (desktop) e o menu inferior têm o mesmo nome; no DOM o menu inferior vem por último.
 const menuInferior = () => within(screen.getAllByRole('navigation', { name: 'Menu principal' }).at(-1))
@@ -33,6 +34,8 @@ function mockApi() {
   const fetchMock = vi.fn(async (input, options = {}) => {
     const url = String(input).replace('http://localhost:8000', '')
     const method = (options.method || 'GET').toUpperCase()
+    if (url === '/auth/login') return json({ access_token: 'token-professor', token_type: 'bearer', expires_in: 3600 })
+    if (url === '/auth/me') return json(PROFESSOR)
     if (method === 'DELETE' && (url === '/turmas/3' || url === '/simulados/9')) {
       excluidos.add(url)
       return json(null, 204)
@@ -119,10 +122,24 @@ describe('rotas: abrir cada tela pela URL', () => {
     expect(urlAtual(router)).toBe(url)
   })
 
-  it('a raiz leva ao login', async () => {
+  it('a raiz leva ao login quando não há sessão', async () => {
+    semSessao()
     const router = renderApp('/')
     expect(await screen.findByRole('heading', { name: 'Metamorfose' })).toBeInTheDocument()
     expect(urlAtual(router)).toBe('/login')
+  })
+
+  it('a raiz leva ao início do perfil logado', async () => {
+    const router = renderApp('/')
+    expect(await screen.findByRole('heading', { name: 'Usuários' })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/admin')
+  })
+
+  it('a raiz leva o professor ao painel', async () => {
+    entrarComo(PROFESSOR)
+    const router = renderApp('/')
+    expect(await screen.findByRole('heading', { name: 'Olá, Prof. Pedro' })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/painel')
   })
 
   it('a correção carrega simulado e aluno pelos ids da URL', async () => {
@@ -183,9 +200,12 @@ describe('rotas: voltar e avançar', () => {
 describe('rotas: regras de histórico', () => {
   it('Fluxo A: login → turmas → turma → editar → salvar; voltar leva à turma, depois à lista; avançar refaz o caminho', async () => {
     const user = userEvent.setup()
+    semSessao()
     const router = renderApp('/login')
 
-    await user.click(await screen.findByRole('button', { name: /acessar plataforma/i }))
+    await user.type(await screen.findByLabelText('E-mail'), 'pedro@unesp.br')
+    await user.type(screen.getByLabelText('Senha'), 'senha-do-pedro')
+    await user.click(screen.getByRole('button', { name: /acessar plataforma/i }))
     expect(await screen.findByRole('heading', { name: 'Olá, Prof. Pedro' })).toBeInTheDocument()
     expect(urlAtual(router)).toBe('/painel')
     expect(router.state.historyAction).toBe('REPLACE')
@@ -351,8 +371,8 @@ describe('rotas: não encontrado', () => {
     expect(await screen.findByRole('heading', { name: 'Página não encontrada' })).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Ir para o início' }))
 
-    expect(await screen.findByRole('heading', { name: 'Metamorfose' })).toBeInTheDocument()
-    expect(urlAtual(router)).toBe('/login')
+    expect(await screen.findByRole('heading', { name: 'Usuários' })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/admin')
   })
 
   it.each([

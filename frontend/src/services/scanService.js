@@ -1,3 +1,5 @@
+import { fetchComToken } from './api.js';
+
 const SCAN_BASE_URL = import.meta.env.VITE_SCAN_URL || 'http://localhost:8001';
 
 // Não usa requestJson: ele força Content-Type: application/json, o que quebra o upload.
@@ -7,7 +9,7 @@ export async function processarGabarito(arquivo, numQuestoes) {
   formData.append('arquivo', arquivo);
 
   const query = numQuestoes ? `?num_questoes=${numQuestoes}` : '';
-  const response = await fetch(`${SCAN_BASE_URL}/processar${query}`, {
+  const response = await fetchComToken(`${SCAN_BASE_URL}/processar${query}`, {
     method: 'POST',
     body: formData,
   });

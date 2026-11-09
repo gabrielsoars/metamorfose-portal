@@ -2,11 +2,13 @@ import { LogOut, ChevronRight, Info, KeyRound } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
+import { useSair } from '../../routes/sessao.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 
 export function ProfPerfilScreen() {
   const navigate = useNavigate();
+  const sair = useSair();
   return (
     <AppShell active="perfil" onNav={(tab) => {
       if (tab === 'dashboard') navigate(rotas.painel());
@@ -49,7 +51,7 @@ export function ProfPerfilScreen() {
           </div>
         </div>
 
-        <button type="button" onClick={() => navigate(rotas.login, { replace: true })} className="w-full flex items-center justify-center gap-2 py-4 rounded-xl border border-red-100 bg-red-50 text-red-600 font-bold hover:bg-red-100 active:scale-[0.98] transition-all">
+        <button type="button" onClick={sair} className="w-full flex items-center justify-center gap-2 py-4 rounded-xl border border-red-100 bg-red-50 text-red-600 font-bold hover:bg-red-100 active:scale-[0.98] transition-all">
           <LogOut size={20} /> Sair da Conta
         </button>
       </div>

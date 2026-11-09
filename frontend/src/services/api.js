@@ -1,8 +1,25 @@
+import { encerrarSessao, lerSessao } from './sessao.js';
+
 export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+// fetch com o token da sessão. Se a API recusar o token (401), encerra a sessão.
+// `publico: true` (login, ativação...) não manda o token: um 401 ali é senha errada, não sessão vencida.
+export async function fetchComToken(url, { publico = false, ...options } = {}) {
+  const sessao = publico ? null : lerSessao();
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...(sessao ? { Authorization: `Bearer ${sessao.token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  if (response.status === 401 && sessao) encerrarSessao();
+  return response;
+}
 
 export async function requestJson(path, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetchComToken(`${API_BASE_URL}${path}`, {
     ...options,
     method,
     headers: {

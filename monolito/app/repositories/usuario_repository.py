@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from ..models.usuario import Usuario
+from ..models.usuario import TipoUsuario, Usuario
 from ..schemas.usuario import UsuarioCreate
 
 def listar_usuarios(db: Session) -> list[Usuario]:
@@ -11,6 +11,16 @@ def buscar_por_id(db: Session, usuario_id: int) -> Usuario | None:
 
 def buscar_por_email(db:Session, email: str) -> Usuario | None:
     return db.query(Usuario).filter(Usuario.email == email).first()
+
+def existe_admin(db: Session) -> bool:
+    return db.query(Usuario).filter(Usuario.tipo == TipoUsuario.ADMIN).first() is not None
+
+def existe_outro_admin_ativo(db: Session, usuario_id: int) -> bool:
+    return db.query(Usuario).filter(
+        Usuario.tipo == TipoUsuario.ADMIN,
+        Usuario.ativo.is_(True),
+        Usuario.id != usuario_id,
+    ).first() is not None
 
 def criar_usuario(db: Session, usuario_in: UsuarioCreate) -> Usuario:
     novo_usuario = Usuario(
