@@ -22,8 +22,9 @@ Tamanho: S (≤ meio dia) · M (1–2 dias)
 | ---- | ------------------------------------------------------------- | ---- | -------------------------------- | ------- |
 | D-10 | Tirar o botão de notificações do dashboard                    | S    | `feat/d10-remover-notificacoes`  | A fazer |
 | D-09 | Aviso de erro no canto da tela, no lugar do `window.alert`    | M    | `feat/d09-aviso-erro`            | A fazer |
+| D-11 | Mostrar o professor logado no lugar de "Prof. Pedro" fixo     | S    | `feat/d11-professor-logado`      | A fazer |
 
-As duas são independentes e podem ser feitas em qualquer ordem. A D-10 é a mais rápida.
+As três são independentes e podem ser feitas em qualquer ordem. A D-10 é a mais rápida. A D-10 e a D-11 mexem no mesmo cabeçalho do dashboard: se forem feitas em paralelo, o segundo PR pode ter um conflito pequeno, fácil de resolver.
 
 ### Antes de começar: ambiente local
 
@@ -109,6 +110,47 @@ Hoje o sino só existe nessa tela. Antes de terminar, confirme com `grep -rn "Be
 - `grep -rn "window.alert" frontend/src --include=*.jsx | grep -v test` não encontra nada.
 - Com o monolito parado (`docker compose stop monolito`), abrir a lista de simulados mostra o aviso no canto. Ele some sozinho e também fecha no X.
 - O aviso aparece por cima de modais abertos, como a edição de aluno.
+- `npm test` e `npm run lint` passam.
+
+### D-11 · Mostrar o professor logado
+
+**Problema:** o nome, o e-mail e a disciplina do professor estão fixos no código. Qualquer professor que entra vê "Olá, Prof. Pedro". Na demo, isso aparece logo na primeira tela.
+
+**Onde está fixo** (para conferir: `grep -rn "Pedro\|>P<" frontend/src --include=*.jsx | grep -v test`):
+
+| Arquivo | O que está fixo |
+| --- | --- |
+| `screens/professor/ProfDashboardScreen.jsx` | Título "Olá, Prof. Pedro" e a inicial "P" no avatar |
+| `screens/professor/ProfPerfilScreen.jsx` | "Prof. Pedro", "pedro@unesp.br" e "Professor • Matemática" |
+| `screens/professor/TurmasScreen.jsx` | Inicial "P" no avatar do cabeçalho |
+| `screens/simulados/SimuladosListaScreen.jsx` | Inicial "P" no avatar do cabeçalho |
+
+**De onde vem o usuário:** a sessão guarda o usuário logado (`{ id, nome, email, materia, tipo }`), que vem de `GET /auth/me` no login.
+
+- Use `useSessao()` de `routes/sessao.jsx`.
+- Algumas telas são testadas sem o `SessaoProvider`, e nesse caso `useSessao()` retorna `null`. Para essas telas não quebrarem, leia o usuário com fallback para o storage:
+  `const usuario = useSessao()?.sessao?.usuario ?? lerSessao()?.usuario;` (`lerSessao` vem de `services/sessao.js`).
+
+**O que fazer:**
+
+1. **Dashboard:** "Olá, Prof. {primeiro nome}". O primeiro nome é `usuario.nome.split(' ')[0]`. O avatar mostra a primeira letra do nome, em maiúscula.
+2. **Perfil:** "Prof. {nome completo}", `usuario.email`, e "Professor • {usuario.materia}". Se não houver matéria, mostre só "Professor".
+3. **Avatares de turmas e simulados:** a mesma inicial do nome.
+4. **Sem usuário na sessão** (não deveria acontecer, porque as rotas são privadas): use "Professor" como nome e "P" como inicial, em vez de quebrar a tela.
+5. Para não repetir a lógica nas 4 telas, crie um helper pequeno, por exemplo `useUsuarioLogado()` em `routes/sessao.jsx`, que devolve `{ nome, primeiroNome, inicial, email, materia }`.
+
+**Testes:**
+
+- O usuário de teste `PROFESSOR` em `src/test/sessao.js` se chama "Pedro". Por isso os testes que procuram "Olá, Prof. Pedro" devem continuar passando, se a sessão de teste for esse usuário.
+- Rode a suíte inteira e ajuste o que quebrar. Atenção aos testes de login em `routes/Autenticacao.test.jsx`: neles, o usuário vem do mock de `/auth/me`, e o nome desse mock é o que vai aparecer na tela.
+- Adicione um teste com um professor de outro nome (ex.: "Maria Souza") que verifique "Olá, Prof. Maria" e a inicial "M".
+
+**Fora do escopo:** editar o perfil, foto de perfil, e o cabeçalho das telas de admin.
+
+**Aceite:**
+
+- Logado como `professor@metamorfose.com` ("Professor Demo"), o dashboard mostra "Olá, Prof. Professor" e o perfil mostra o nome, o e-mail e a matéria desse usuário.
+- `grep -rn "Pedro" frontend/src --include=*.jsx | grep -v test` não encontra nada.
 - `npm test` e `npm run lint` passam.
 
 ---
