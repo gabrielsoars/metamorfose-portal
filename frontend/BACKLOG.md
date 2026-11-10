@@ -12,26 +12,129 @@ Objetivo: o fluxo abaixo rodar de ponta a ponta numa demo. Nada além disso.
 
 Tamanho: S (≤ meio dia) · M (1–2 dias)
 
-## Tasks
+> **Situação em 2026-11-10:** a fase 1 (D-01 a D-08) está concluída, e o fluxo da demo funciona de ponta a ponta com login.
+> Depois dela, o projeto seguiu com as tasks P-xx do Igor e a autenticação JWT do Eduardo. As P-xx incluem layout desktop, react-router, boletim e ranking, e edição e exclusão. Essas tasks **não estão neste arquivo**.
+> As tasks abertas estão na seção **Fase 2**. A seção **Histórico** descreve o código como ele era na fase 1 e não deve ser usada como referência do código atual.
+
+## Fase 2: tasks abertas
+
+| ID   | Task                                                          | Tam. | Branch                           | Status  |
+| ---- | ------------------------------------------------------------- | ---- | -------------------------------- | ------- |
+| D-10 | Tirar o botão de notificações do dashboard                    | S    | `feat/d10-remover-notificacoes`  | A fazer |
+| D-09 | Aviso de erro no canto da tela, no lugar do `window.alert`    | M    | `feat/d09-aviso-erro`            | A fazer |
+
+As duas são independentes e podem ser feitas em qualquer ordem. A D-10 é a mais rápida.
+
+### Antes de começar: ambiente local
+
+O projeto agora exige autenticação. Para rodar localmente:
+
+1. **Chaves JWT:** gere `keys/jwt_private.pem` e `keys/jwt_public.pem` como mostra o `README.md`. Sem elas, o `docker compose up` falha.
+2. **Admin inicial:** no `.env`, defina `ADMIN_EMAIL` e `ADMIN_NOME`.
+   - O e-mail **não pode usar domínio reservado**, como `.local`, `.test` ou `.example`. A validação rejeita esses domínios, e o monolito entra em loop de reinício sem subir.
+   - Sem SMTP configurado, o código de ativação aparece no log: `docker compose logs monolito | grep "Código de"`.
+   - Ative a conta pela tela de ativação ou por `POST /auth/ativar`.
+3. **Banco criado antes do PR #13:** o projeto não tem migrations, e o `create_all` cria tabelas novas mas não adiciona colunas a tabelas que já existem. Num banco antigo, criar um simulado dá erro 500, porque falta a coluna `gabarito.anulada`. Há duas saídas:
+   - adicionar a coluna, sem perder dados:
+     `docker compose exec -T application_db psql -U postgres -d <POSTGRES_DB> -c "ALTER TABLE gabarito ADD COLUMN anulada BOOLEAN NOT NULL DEFAULT false"`
+   - ou recriar o banco do zero com `docker compose down -v`, que **apaga todos os dados**.
+
+### Regras para quem executar as tasks da fase 2
+
+- **Mudança mínima.** O projeto é um TCC e só precisa funcionar na demo. Não refatore nem adicione bibliotecas.
+- **O código mudou desde a fase 1.**
+  - A navegação usa **react-router**: as rotas ficam em `frontend/src/routes/rotas.js`, e as telas usam `useNavigate`.
+  - A sessão fica em `frontend/src/routes/sessao.jsx`.
+  - Os services continuam usando `requestJson` de `services/api.js`, que já envia o token.
+- **O projeto tem testes.** Se a mudança alterar um comportamento que algum teste verifica, atualize esse teste.
+- **Ao terminar:** rode `npm test` e `npm run lint` dentro de `frontend/`, e teste a mudança no navegador com a stack rodando.
+
+### D-10 · Tirar o botão de notificações
+
+**Problema:** o cabeçalho do dashboard do professor tem um botão de sino com uma bolinha laranja. Ele não faz nada, porque o sistema não tem notificações. Na demo, isso sugere uma funcionalidade que não existe.
+
+**O que fazer** em `frontend/src/screens/professor/ProfDashboardScreen.jsx`:
+
+1. Remover o `<button aria-label="Notificações">`, junto com o `<span>` da bolinha que fica dentro dele.
+2. Remover `Bell` do import do `lucide-react`.
+3. Manter o botão "Sair" e conferir que o cabeçalho continua alinhado no celular e no desktop. O botão "Sair" passa a ficar sozinho na `div` com `gap-2`.
+
+Hoje o sino só existe nessa tela. Antes de terminar, confirme com `grep -rn "Bell\|Notifica" frontend/src`.
+
+**Aceite:**
+
+- O dashboard não tem mais o sino, nem no celular nem no desktop.
+- O botão "Sair" continua funcionando.
+- `npm test` e `npm run lint` passam.
+
+### D-09 · Aviso de erro no canto da tela
+
+**Problema:** os erros aparecem com `window.alert`. É a janela nativa do navegador: bloqueia a tela, não segue o visual do app e exige um clique para fechar. Hoje há **27 chamadas em 13 arquivos**. Para listar: `grep -rn "window.alert" frontend/src --include=*.jsx | grep -v test`.
+
+**Objetivo:** mostrar os erros num aviso pequeno no canto da tela, que some sozinho.
+
+**Abordagem:**
+
+1. **Criar o aviso** em `frontend/src/components/Avisos.jsx`:
+   - Uma função `mostrarErro(mensagem)` que pode ser chamada de qualquer lugar, como o `window.alert` é hoje.
+   - Um componente `<Avisos />` que exibe os avisos pendentes.
+   - A ligação entre os dois deve ser um estado simples **no próprio módulo**: uma lista de avisos mais os componentes inscritos para ouvir mudanças.
+   - **Não use Context.** Várias telas são testadas isoladamente, sem providers (ex.: `SimuladoEditarScreen.test.jsx`), e um hook que exige provider quebraria esses testes.
+2. **Montar `<Avisos />` uma única vez** no `App.jsx`, dentro do `SessaoProvider` e fora das `<Routes>`, para que ele apareça em todas as telas, inclusive no login.
+3. **Visual:**
+   - Posição `fixed`.
+   - No desktop (`md:`), no canto inferior direito.
+   - No celular, embaixo e centralizado, **acima da barra de navegação inferior** (o `BottomNav` do `AppShell.jsx`).
+   - Cartão branco com borda ou ícone vermelho (ex.: `AlertCircle` do `lucide-react`), com o texto do erro e um botão de fechar (`aria-label="Fechar aviso"`).
+   - Some sozinho depois de cerca de 5 segundos.
+   - Vários avisos empilham, no máximo 3. Quando chega um quarto, o mais antigo sai.
+   - O `z-index` precisa ficar acima de todas as camadas atuais: `AppShell` usa `z-30`, o `Sheet` do `ui.jsx` usa `z-40` e o `ConfirmDialog` usa `z-50`. Use, por exemplo, `z-[60]`.
+4. **Trocar todas as chamadas** de `window.alert(...)` por `mostrarErro(...)`, mantendo a mesma mensagem. Isso inclui as mensagens de validação, como "Preencha o título...", e o `components/ImagePicker.jsx`.
+5. **Acessibilidade:**
+   - Use `role="status"` no aviso, **não** `role="alert"`.
+   - Motivo: as telas de autenticação já mostram erros inline com `role="alert"` (`screens/auth/FormCodigoSenha.jsx`), e `routes/Autenticacao.test.jsx` procura por `findByRole('alert')`. Dois elementos com esse papel quebrariam esse teste.
+6. **Testes:**
+   - Atualizar os testes que fazem `vi.spyOn(window, 'alert')`. Para listar: `grep -rln "window, 'alert'" frontend/src`. Em vez de verificar o `alert`, eles passam a verificar que o texto do erro aparece na tela.
+   - Testes que renderizam uma tela isolada precisam renderizar `<Avisos />` junto.
+   - Criar um teste curto para o `Avisos` cobrindo três casos: o aviso aparece, fecha no X e some sozinho (com `vi.useFakeTimers()`).
+
+**Fora do escopo:**
+
+- Avisos de sucesso.
+- O `ConfirmDialog`: as confirmações, como "Excluir?", continuam como estão.
+- Os erros inline que já existem nas telas de login e ativação.
+
+**Aceite:**
+
+- `grep -rn "window.alert" frontend/src --include=*.jsx | grep -v test` não encontra nada.
+- Com o monolito parado (`docker compose stop monolito`), abrir a lista de simulados mostra o aviso no canto. Ele some sozinho e também fecha no X.
+- O aviso aparece por cima de modais abertos, como a edição de aluno.
+- `npm test` e `npm run lint` passam.
+
+---
+
+## Histórico: Fase 1 (concluída)
+
+> Tudo abaixo descreve o código **como ele era em 28/10/2026**: navegação sem router, nota não salva e login só visual. Mantido só como registro.
+
+### Tasks
 
 | ID   | Task                                                                | Tam. | Branch                          | Status                   |
 | ---- | ------------------------------------------------------------------- | ---- | ------------------------------- | ------------------------ |
 | D-01 | Subir a stack (`docker compose up`) e rodar `npm test`              | S    | — (não gerou código)            | ✅ Feita em 2026-10-28    |
-| D-08 | Manter a tela atual ao dar refresh (hoje volta para o login)        | S    | `feat/d08-refresh-mantem-tela`  | ✅ Mergeada (PR #8)       |
+| D-08 | Manter a tela atual ao dar refresh (hoje volta para o login)        | S    | `feat/d08-refresh-mantem-tela`  | ✅ Mergeada (PR #8), depois substituída pelo react-router (P-14) |
 | D-02 | Registrar router e modelo de simulados no `monolito/app/main.py`    | S    | `fix/d02-registrar-simulados`   | ✅ Mergeada (PR #9)       |
 | D-03 | Cadastro de turma salvando na API                                   | S    | `feat/d03-cadastro-turma`       | ✅ Mergeada (PR #10)      |
-| D-04 | `simuladosService.js` + lista e criação de simulado integradas      | M    | `feat/d04-simulados`            | ✅ Pronta para PR         |
-| D-05 | Cadastro do gabarito oficial (`PUT /simulados/{id}/gabarito`)       | M    | `feat/d05-gabarito-oficial`     | ✅ Pronta para PR         |
-| D-06 | Escaneamento: enviar imagem ao `scan_service` e exibir as respostas | M    | `feat/d06-escaneamento`         | ✅ Pronta para PR         |
-| D-05 | Cadastro do gabarito oficial (`PUT /simulados/{id}/gabarito`)       | M    | `feat/d05-gabarito-oficial`     | ✅ Pronta para PR         |
-| D-06 | Escaneamento: enviar imagem ao `scan_service` e exibir as respostas | M    | `feat/d06-escaneamento`         | ✅ Pronta para PR         |
-| D-07 | Calcular e mostrar a nota (respostas lidas × gabarito oficial)      | S    | `feat/d07-nota`                 | ✅ Pronta para PR         |
+| D-04 | `simuladosService.js` + lista e criação de simulado integradas      | M    | `feat/d04-simulados`            | ✅ Mergeada (PR #11)      |
+| D-05 | Cadastro do gabarito oficial (`PUT /simulados/{id}/gabarito`)       | M    | `feat/d05-gabarito-oficial`     | ✅ Mergeada (PR #15)      |
+| D-06 | Escaneamento: enviar imagem ao `scan_service` e exibir as respostas | M    | `feat/d06-escaneamento`         | ✅ Mergeada (PR #16)      |
+| D-07 | Calcular e mostrar a nota (respostas lidas × gabarito oficial)      | S    | `feat/d07-nota`                 | ✅ Mergeada (PR #17)      |
 
 Ordem: D-01 → D-08 → D-02 → D-03 → D-04 → D-05 → D-06 → D-07 (a tabela já está nessa ordem).
 
 **Branches:** uma por task, todas criadas a partir da `main`. As tasks dependem umas das outras (ex.: D-04 usa o mecanismo da D-08 e precisa da D-02), então, antes de começar uma task, atualize a branch dela com a `main` (`git merge main`) depois que as tasks anteriores forem mergeadas.
 
-## Decisões assumidas (corrija se não servir)
+### Decisões assumidas (corrija se não servir)
 
 - **Foto:** upload de arquivo de imagem, sem câmera. É mais simples e basta para demonstrar.
 - **Nota:** calculada no frontend e **não salva**. Salvar exigiria criar um modelo e endpoints de resultado no backend.
@@ -41,7 +144,7 @@ Ordem: D-01 → D-08 → D-02 → D-03 → D-04 → D-05 → D-06 → D-07 (a ta
 
 ---
 
-## Regras para quem executar as tasks
+### Regras para quem executar as tasks
 
 Valem para todas as tasks abaixo.
 
@@ -52,7 +155,7 @@ Valem para todas as tasks abaixo.
 - **Ao terminar:** rode `npm test` dentro de `frontend/` e confirme que continua passando. Teste o fluxo da task no navegador com a stack rodando.
 - **Não faça o que está em "Fora do escopo"**, mesmo que pareça fácil.
 
-## Como a navegação funciona hoje
+### Como a navegação funciona hoje
 
 Isso afeta várias tasks, então leia antes de começar.
 
@@ -72,9 +175,9 @@ Mapa das telas de simulado:
 
 ---
 
-## Descrição das tasks
+### Descrição das tasks
 
-### D-01 · Subir a stack e rodar os testes
+#### D-01 · Subir a stack e rodar os testes
 
 **Objetivo:** saber o que já funciona antes de alterar qualquer código. Esta task **só verifica e reporta**, não corrige nada.
 
@@ -109,7 +212,7 @@ Observações:
 
 ---
 
-### D-08 · Manter a tela atual ao dar refresh
+#### D-08 · Manter a tela atual ao dar refresh
 
 **Problema:** `App.jsx` começa sempre com `useState('login')`. Qualquer F5 descarta a navegação e volta ao login, o que atrapalha o desenvolvimento e a demo.
 
@@ -142,7 +245,7 @@ Observações:
 
 ---
 
-### D-02 · Registrar simulados no backend
+#### D-02 · Registrar simulados no backend
 
 > Task de **backend**, mas bloqueia D-04 a D-07.
 
@@ -165,7 +268,7 @@ Não mexa em mais nada do backend.
 
 ---
 
-### D-03 · Cadastro de turma salvando na API
+#### D-03 · Cadastro de turma salvando na API
 
 **Problema:** `frontend/src/screens/professor/TurmaCadastroScreen.jsx` só tem um input sem estado. O botão "Salvar Turma" apenas navega, sem chamar a API. O backend já tem `POST /turmas` e exige `nome` (texto), `ano` (inteiro) e `turno` (texto).
 
@@ -197,7 +300,7 @@ Não mexa em mais nada do backend.
 
 ---
 
-### D-04 · Simulados: service, lista e criação
+#### D-04 · Simulados: service, lista e criação
 
 **Dependência:** D-02.
 
@@ -260,7 +363,7 @@ Não mexa em mais nada do backend.
 
 ---
 
-### D-05 · Cadastro do gabarito oficial
+#### D-05 · Cadastro do gabarito oficial
 
 **Dependência:** D-04.
 
@@ -297,7 +400,7 @@ Não mexa em mais nada do backend.
 
 ---
 
-### D-06 · Escaneamento com o `scan_service`
+#### D-06 · Escaneamento com o `scan_service`
 
 **Dependência:** D-04 (simulado selecionado). Usa os alunos cadastrados na D-03.
 
@@ -350,7 +453,7 @@ Não mexa em mais nada do backend.
 
 ---
 
-### D-07 · Calcular e mostrar a nota
+#### D-07 · Calcular e mostrar a nota
 
 **Dependência:** D-05 e D-06.
 
@@ -375,11 +478,11 @@ Não mexa em mais nada do backend.
 
 ---
 
-## Fora do escopo, opcional
+### Fora do escopo, opcional
 
 Breadcrumb visual e react-router (o D-08 cobre só o refresh), login e ativação reais, sessão e rotas protegidas, importação CSV, edição de turma e de simulado, contagem de alunos por turma, campo matrícula, dashboard com dados reais, perfil, toast e estados de erro bonitos, câmera, salvar resultado do aluno, testes novos, CI, acessibilidade.
 
-## Problemas conhecidos que **não** vamos resolver
+### Problemas conhecidos que **não** vamos resolver
 
 - Turmas aparecem com "0 alunos" (o backend não devolve a contagem).
 - A matrícula exibida é o `id` do aluno.
