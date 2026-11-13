@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ChevronDown } from 'lucide-react';
+import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { C } from '../../data/constants.js';
 import { listarSimulados, carregarQuestoesComErro } from '../../services/simuladosService.js';
 import { listarTurmas } from '../../services/turmasService.js';
@@ -144,27 +145,78 @@ export function QuestoesErroLista({ q, limite, tabela = false }) {
   if (mensagem) return <p className="text-xs text-gray-400 text-center py-4">{mensagem}</p>;
 
   const questoes = limite ? q.resultado.questoes.slice(0, limite) : q.resultado.questoes;
-  return (
-    <div className={`space-y-4 ${tabela ? 'lg:space-y-0 lg:divide-y lg:divide-gray-100' : ''}`}>
-      {tabela && (
-        <div className="hidden lg:grid lg:grid-cols-[12rem_minmax(0,1fr)_7rem] lg:gap-6 pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-          <span>Questão</span>
-          <span>Índice de erro</span>
-          <span className="text-right">Erraram</span>
+
+  if (!tabela) {
+    const dadosGrafico = questoes.map((item) => ({
+      ...item,
+      rotulo: `Questão ${String(item.questao).padStart(2, '0')}`,
+      pctTexto: `${item.pct}% erraram`,
+      cor: corDoPercentual(item.pct),
+    }));
+
+    return (
+      <>
+        <div className="h-32 w-full" data-testid="grafico-questoes-erro">
+          <ResponsiveContainer width="100%" height={128} minWidth={180}>
+            <BarChart data={dadosGrafico} layout="vertical" margin={{ top: 4, right: 72, left: 4, bottom: 0 }}>
+              <XAxis type="number" hide domain={[0, 100]} />
+              <YAxis
+                type="category"
+                dataKey="rotulo"
+                width={74}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fontWeight: 700, fill: '#1f2937' }}
+              />
+              <Tooltip
+                formatter={(v, _n, p) => [`${v}% (${p.payload.erros} de ${p.payload.total} alunos)`, 'Índice de erro']}
+                contentStyle={{ fontSize: 11, borderRadius: 8 }}
+              />
+              <Bar dataKey="pct" radius={[0, 6, 6, 0]} barSize={20} isAnimationActive={false}>
+                <LabelList
+                  dataKey="pctTexto"
+                  position="right"
+                  style={{ fontSize: 10, fontWeight: 700, fill: '#6b7280' }}
+                />
+                {dadosGrafico.map((entry) => (
+                  <Cell key={entry.questao} fill={entry.cor} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-      )}
+        <ul className="sr-only" aria-label="Questões com maior índice de erro">
+          {questoes.map(({ questao, erros, total, pct }) => (
+            <li key={questao}>
+              <span>Questão {String(questao).padStart(2, '0')}</span>
+              <span> ({erros} de {total} alunos) </span>
+              <span>{pct}% erraram</span>
+            </li>
+          ))}
+        </ul>
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-4 lg:space-y-0 lg:divide-y lg:divide-gray-100">
+      <div className="hidden lg:grid lg:grid-cols-[12rem_minmax(0,1fr)_7rem] lg:gap-6 pb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+        <span>Questão</span>
+        <span>Índice de erro</span>
+        <span className="text-right">Erraram</span>
+      </div>
       {questoes.map(({ questao, erros, total, pct }) => {
         const color = corDoPercentual(pct);
         return (
-          <div key={questao} className={tabela ? 'lg:grid lg:grid-cols-[12rem_minmax(0,1fr)_7rem] lg:items-center lg:gap-6 lg:py-3' : undefined}>
-            <div className={`flex justify-between items-end mb-1 ${tabela ? 'lg:contents' : ''}`}>
-              <p className={`text-xs font-bold text-gray-800 ${tabela ? 'lg:order-1 lg:text-sm' : ''}`}>
+          <div key={questao} className="lg:grid lg:grid-cols-[12rem_minmax(0,1fr)_7rem] lg:items-center lg:gap-6 lg:py-3">
+            <div className="flex justify-between items-end mb-1 lg:contents">
+              <p className="text-xs font-bold text-gray-800 lg:order-1 lg:text-sm">
                 Questão {String(questao).padStart(2, '0')}
                 <span className="text-[9px] text-gray-400 font-normal ml-1">({erros} de {total} alunos)</span>
               </p>
-              <p className={`text-xs font-bold ${tabela ? 'lg:order-3 lg:text-right lg:text-sm' : ''}`} style={{ color }}>{pct}% erraram</p>
+              <p className="text-xs font-bold lg:order-3 lg:text-right lg:text-sm" style={{ color }}>{pct}% erraram</p>
             </div>
-            <div className={`w-full bg-gray-100 h-2 rounded-full overflow-hidden ${tabela ? 'lg:order-2 lg:h-3' : ''}`}>
+            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden lg:order-2 lg:h-3">
               <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
             </div>
           </div>

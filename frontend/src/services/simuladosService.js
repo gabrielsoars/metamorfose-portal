@@ -129,9 +129,22 @@ export function calcularQuestoesComErro(correcoes, totalQuestoes) {
     .sort((a, b) => b.erros * a.total - a.erros * b.total || b.total - a.total || a.questao - b.questao);
 }
 
-// Uma chamada para listar os alunos + uma por aluno corrigido (da turma escolhida, se houver).
-// Alunos pendentes não geram chamada.
+// Busca as questões com erro agregadas no backend; se o endpoint /questoes-erro
+// não estiver disponível (ex.: mocks legados), faz fallback para o cálculo no cliente.
 export async function carregarQuestoesComErro(simulado, turmaId = '') {
+  const query = turmaId ? `?turma_id=${encodeURIComponent(turmaId)}` : '';
+  try {
+    const dados = await requestJson(`/simulados/${simulado.id}/questoes-erro${query}`);
+    if (dados && Array.isArray(dados.questoes)) {
+      return {
+        corrigidos: dados.corrigidos ?? 0,
+        questoes: dados.questoes,
+      };
+    }
+  } catch (err) {
+    if (err?.status && err.status !== 404) throw err;
+  }
+
   const { alunos = [] } = await listarAlunosDoSimulado(simulado.id);
   const corrigidos = alunos.filter(
     (a) => a.status === 'CORRIGIDO' && (!turmaId || String(a.turma_id) === String(turmaId)),
