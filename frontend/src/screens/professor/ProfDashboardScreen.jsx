@@ -1,4 +1,4 @@
-import { LogOut, Bell, TrendingUp } from 'lucide-react';
+import { LogOut, TrendingUp } from 'lucide-react';
 import { C } from '../../data/constants.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
@@ -38,10 +38,6 @@ export function ProfDashboardScreen() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" aria-label="Notificações" className="relative w-11 h-11 md:w-10 md:h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:text-orange-500 transition-colors">
-            <Bell size={20} />
-            <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full border border-white" style={{ background: C.orange }} />
-          </button>
           <button
             type="button"
             onClick={sair}
