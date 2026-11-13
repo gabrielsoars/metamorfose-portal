@@ -2,7 +2,9 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProfDashboardScreen } from './ProfDashboardScreen.jsx'
 import { formatarPercentual, formatarVariacao } from '../../services/estatisticasService.js'
-import { renderNaRota } from '../../test/rotas'
+import { renderApp, renderNaRota, urlAtual } from '../../test/rotas'
+import { PROFESSOR, entrarComo } from '../../test/sessao'
+import { lerSessao } from '../../services/sessao'
 
 const simulados = [
   { id: 1, titulo: 'Simulado Antigo', data_aplicacao: '2026-03-01', total_questoes: 5, turmas: [{ id: 10, nome: 'Turma A' }] },
@@ -103,6 +105,30 @@ describe('MediaAcertosCard (dashboard)', () => {
 
     expect(await screen.findByText('Selecione um simulado para ver a média.')).toBeInTheDocument()
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/resumo'))).toBe(false)
+  })
+
+  it('envia o Bearer token nas rotas de estatísticas e encerra a sessão se retornar 401', async () => {
+    entrarComo(PROFESSOR, 'token-estatisticas')
+    const fetchMock = vi.fn(async (input) => {
+      const url = String(input).replace('http://localhost:8000', '')
+      if (url === '/simulados') return jsonResponse(simulados)
+      if (url === '/turmas') return jsonResponse(turmas)
+      if (url === '/simulados/2/resumo') {
+        return { ok: false, status: 401, json: async () => ({ detail: 'Token de acesso inválido ou ausente.' }) }
+      }
+      return jsonResponse({ total: 0, alunos: [], pontos: [], questoes: [], corrigidos: 0 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const router = renderApp('/painel')
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8000/simulados/2/resumo',
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer token-estatisticas' }) }),
+    ))
+    expect(await screen.findByRole('heading', { name: 'Metamorfose' })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/login')
+    expect(lerSessao()).toBeNull()
   })
 })
 

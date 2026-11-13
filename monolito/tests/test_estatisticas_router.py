@@ -359,4 +359,20 @@ def test_questoes_erro_arredonda_50_5_para_cima_e_sem_correcoes_retorna_vazio(cl
     ]
 
 
+# --------------------------------------------------------------------------- #
+# Autenticação nas rotas de estatísticas
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize("url", [
+    "/simulados/1/resumo",
+    "/simulados/1/questoes-erro",
+    "/estatisticas/historico",
+])
+def test_estatisticas_exigem_autenticacao(client_anonimo, chaves_jwt, url):
+    res = client_anonimo.get(url)
+    assert res.status_code == 401
+    assert res.json()["detail"] == "Token de acesso inválido ou ausente."
+
+
+
 

@@ -41,8 +41,8 @@ app.include_router(turmas.router, dependencies=[Depends(obter_usuario_atual)])
 app.include_router(alunos.router, dependencies=[Depends(obter_usuario_atual)])
 app.include_router(usuarios.router, dependencies=[Depends(exigir_admin)])
 app.include_router(simulados.router, dependencies=[Depends(obter_usuario_atual)])
+app.include_router(estatisticas.router, dependencies=[Depends(obter_usuario_atual)])
 app.include_router(auth.router)
-app.include_router(estatisticas.router)
 
 
 @app.get("/")
