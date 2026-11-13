@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SimuladoEditarScreen } from './SimuladoEditarScreen.jsx'
 import { SimuladoPainelScreen } from './SimuladoPainelScreen.jsx'
+import { Avisos } from '../../components/Avisos.jsx'
 import { renderNaRota, urlAtual } from '../../test/rotas'
 
 const EDICAO = { rota: '/simulados/9/editar' }
@@ -119,14 +120,13 @@ describe('SimuladoEditarScreen', () => {
   it('não salva com número de questões inválido', async () => {
     const user = userEvent.setup()
     const fetchMock = mockFetch()
-    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {})
-    renderNaRota(<SimuladoEditarScreen simulado={simulado} turmas={turmas} />, EDICAO)
+    renderNaRota(<><SimuladoEditarScreen simulado={simulado} turmas={turmas} /><Avisos /></>, EDICAO)
 
     await user.clear(screen.getByLabelText('Questões'))
     await user.type(screen.getByLabelText('Questões'), '0')
     await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
 
-    expect(alert).toHaveBeenCalled()
+    expect(await screen.findByText('Preencha o título, a data e o número de questões.')).toBeInTheDocument()
     expect(patchCalls(fetchMock)).toHaveLength(0)
   })
 })

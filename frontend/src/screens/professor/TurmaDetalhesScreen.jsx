@@ -10,6 +10,7 @@ import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
+import { mostrarErro } from '../../components/avisosEstado.js';
 
 // Colunas da tabela de alunos no desktop (avatar, nome, matrícula, ações).
 const COLUNAS = 'lg:grid-cols-[2.5rem_minmax(0,1fr)_10rem_6rem]';
@@ -72,7 +73,7 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
       setEditingId(null);
       if (onRefresh) await onRefresh();
     } catch (error) {
-      window.alert(error.message || 'Não foi possível atualizar o aluno.');
+      mostrarErro(error.message || 'Não foi possível atualizar o aluno.');
     }
   }
 
@@ -86,7 +87,7 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
       setShowAddForm(false);
       if (onRefresh) await onRefresh();
     } catch (error) {
-      window.alert(error.message || 'Não foi possível adicionar o aluno.');
+      mostrarErro(error.message || 'Não foi possível adicionar o aluno.');
     }
   }
 
@@ -106,7 +107,7 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
       if (onRefresh) await onRefresh();
     } catch (error) {
       setPendingDelete(null);
-      window.alert(error.message || (pendingDelete.tipo === 'turma' ? 'Não foi possível excluir a turma.' : 'Não foi possível excluir o aluno.'));
+      mostrarErro(error.message || (pendingDelete.tipo === 'turma' ? 'Não foi possível excluir a turma.' : 'Não foi possível excluir o aluno.'));
     } finally {
       setDeleting(false);
     }

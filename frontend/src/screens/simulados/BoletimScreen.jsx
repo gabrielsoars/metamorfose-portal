@@ -7,6 +7,7 @@ import { rotas } from '../../routes/rotas.js';
 import { OrangeBtn } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
+import { mostrarErro } from '../../components/avisosEstado.js';
 
 // Colunas da tabela de questões no desktop.
 const COLUNAS = 'lg:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)_7rem]';
@@ -26,7 +27,7 @@ export function BoletimScreen({ simulado, aluno }) {
       .catch((error) => {
         if (isMounted) {
           setCorrecao(null);
-          window.alert(error.message || 'Não foi possível carregar o boletim.');
+          mostrarErro(error.message || 'Não foi possível carregar o boletim.');
         }
       });
 

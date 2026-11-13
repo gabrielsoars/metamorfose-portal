@@ -7,6 +7,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { rotas, filtroDaUrl } from '../../routes/rotas.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
+import { mostrarErro } from '../../components/avisosEstado.js';
 
 // Simulados que têm a turma (todos, se nenhuma turma estiver escolhida), do mais recente para o mais antigo.
 const simuladosDaTurma = (simulados, turmaId) =>
@@ -35,7 +36,7 @@ export function useQuestoesErro(filtroInicial, onChange) {
         setTurmas(Array.isArray(listaTurmas) ? listaTurmas : []);
       })
       .catch((error) => {
-        if (isMounted) window.alert(error.message || 'Não foi possível carregar simulados e turmas.');
+        if (isMounted) mostrarErro(error.message || 'Não foi possível carregar simulados e turmas.');
       })
       .finally(() => {
         if (isMounted) setCarregandoFiltros(false);
@@ -58,7 +59,7 @@ export function useQuestoesErro(filtroInicial, onChange) {
       })
       .catch((error) => {
         if (!isMounted) return;
-        window.alert(error.message || 'Não foi possível carregar as questões.');
+        mostrarErro(error.message || 'Não foi possível carregar as questões.');
         setResultado({ chave, erro: true });
       });
     return () => {

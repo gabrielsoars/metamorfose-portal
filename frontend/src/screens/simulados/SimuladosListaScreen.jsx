@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
+import { mostrarErro } from '../../components/avisosEstado.js';
 
 // A API devolve "YYYY-MM-DD". new Date() interpretaria como UTC e mostraria um dia antes no Brasil.
 const formatarData = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
@@ -24,7 +25,7 @@ export function SimuladosListaScreen() {
         if (isMounted) setSimulados(Array.isArray(lista) ? lista : []);
       })
       .catch((error) => {
-        if (isMounted) window.alert(error.message || 'Não foi possível carregar os simulados.');
+        if (isMounted) mostrarErro(error.message || 'Não foi possível carregar os simulados.');
       })
       .finally(() => {
         if (isMounted) setLoading(false);
