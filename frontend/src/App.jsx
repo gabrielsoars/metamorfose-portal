@@ -9,6 +9,7 @@ import { ProfDashboardScreen, TurmasScreen, TurmaDetalhesScreen, TurmaCadastroSc
 import { QuestoesErroScreen } from './screens/professor/QuestoesErroScreen.jsx';
 import { SimuladosListaScreen, SimuladoCriarScreen, SimuladoEditarScreen, SimuladoPainelScreen, EscaneamentoScreen, GabaritoScreen, BoletimScreen } from './screens/simulados/index.js';
 import { NaoEncontradoScreen } from './screens/NaoEncontradoScreen.jsx';
+import { Avisos } from './components/Avisos.jsx';
 import { rotas } from './routes/rotas.js';
 import { useTitulo } from './routes/titulo.js';
 import { RotaPrivada } from './routes/RotaPrivada.jsx';
@@ -29,6 +30,7 @@ export default function App() {
   return (
     <SessaoProvider>
       <AppRotas />
+      <Avisos />
     </SessaoProvider>
   );
 }

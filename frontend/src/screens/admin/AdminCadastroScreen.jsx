@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
 import { OrangeBtn, Sheet } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
+import { mostrarErro } from '../../components/avisosEstado.js';
 
 export function AdminCadastroScreen({ onRefresh }) {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export function AdminCadastroScreen({ onRefresh }) {
       if (onRefresh) await onRefresh();
       navigate(rotas.admin, { replace: true });
     } catch (error) {
-      window.alert(error.message || 'Não foi possível criar o usuário.');
+      mostrarErro(error.message || 'Não foi possível criar o usuário.');
     } finally {
       setSaving(false);
     }

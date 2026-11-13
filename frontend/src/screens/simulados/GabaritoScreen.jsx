@@ -7,6 +7,7 @@ import { rotas } from '../../routes/rotas.js';
 import { OrangeBtn } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
+import { mostrarErro } from '../../components/avisosEstado.js';
 
 export function GabaritoScreen({ simulado }) {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export function GabaritoScreen({ simulado }) {
         setAnswers(salvas);
       })
       .catch((error) => {
-        if (isMounted) window.alert(error.message || 'Não foi possível carregar o gabarito.');
+        if (isMounted) mostrarErro(error.message || 'Não foi possível carregar o gabarito.');
       });
 
     return () => {
@@ -57,7 +58,7 @@ export function GabaritoScreen({ simulado }) {
     if (saving) return;
     const itens = Object.entries(answers).map(([num, alt]) => ({ num_questao: Number(num), alt_correta: alt }));
     if (itens.length === 0) {
-      window.alert('Marque a alternativa correta de pelo menos uma questão.');
+      mostrarErro('Marque a alternativa correta de pelo menos uma questão.');
       return;
     }
 
@@ -66,7 +67,7 @@ export function GabaritoScreen({ simulado }) {
       await salvarGabarito(simulado.id, itens);
       navigate(rotas.simulado(simulado.id), { replace: true });
     } catch (error) {
-      window.alert(error.message || 'Não foi possível salvar o gabarito.');
+      mostrarErro(error.message || 'Não foi possível salvar o gabarito.');
     } finally {
       setSaving(false);
     }

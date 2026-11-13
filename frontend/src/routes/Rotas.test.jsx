@@ -86,7 +86,6 @@ const avancar = (router) => act(() => router.navigate(1))
 
 beforeEach(() => {
   mockApi()
-  vi.spyOn(window, 'alert').mockImplementation(() => {})
 })
 
 afterEach(() => {
