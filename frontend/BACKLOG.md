@@ -528,5 +528,4 @@ Breadcrumb visual e react-router (o D-08 cobre só o refresh), login e ativaçã
 
 - Turmas aparecem com "0 alunos" (o backend não devolve a contagem).
 - A matrícula exibida é o `id` do aluno.
-- O dashboard do professor segue com dados fixos.
 - O painel do simulado mostra todos os alunos como "não corrigidos", porque a nota não é salva.

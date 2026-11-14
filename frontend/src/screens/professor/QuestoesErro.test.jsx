@@ -193,6 +193,34 @@ describe('ProfDashboardScreen', () => {
     expect(await screen.findByText('Nenhum simulado cadastrado ainda.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /ver todas/i })).toBeDisabled()
   })
+
+  it('usa o endpoint agregado /simulados/{id}/questoes-erro sem disparar N+1 chamadas por aluno', async () => {
+    const fetchMock = vi.fn(async (input) => {
+      const url = String(input).replace('http://localhost:8000', '')
+      if (url === '/simulados') return jsonResponse(simulados)
+      if (url === '/turmas') return jsonResponse(turmas)
+      if (url === '/simulados/2/questoes-erro') {
+        return jsonResponse({
+          simulado_id: 2,
+          turma_id: null,
+          corrigidos: 3,
+          questoes: [
+            { questao: 2, erros: 2, total: 3, pct: 67 },
+            { questao: 4, erros: 2, total: 3, pct: 67 },
+            { questao: 3, erros: 1, total: 3, pct: 33 },
+          ],
+        })
+      }
+      return { ok: false, status: 404, json: async () => ({}) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderNaRota(<ProfDashboardScreen />, { rota: '/painel' })
+
+    expect(await screen.findByText('Questão 02')).toBeInTheDocument()
+    expect(screen.getByTestId('grafico-questoes-erro')).toBeInTheDocument()
+    expect(chamadasCorrecao(fetchMock)).toHaveLength(0)
+  })
 })
 
 describe('App', () => {
