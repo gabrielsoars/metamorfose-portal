@@ -158,6 +158,163 @@ Hoje o sino só existe nessa tela. Antes de terminar, confirme com `grep -rn "Be
 
 ---
 
+## Fase 3: bugs do Trello
+
+Os cinco bugs abaixo vieram da coluna "To Do" do Trello. Todos foram verificados em 2026-11-15, no código da `main` (`8d6de7f`):
+
+- **D-14, D-15, D-12 e D-13:** reproduzidos contra a API real ou com testes.
+- **D-16:** a falha silenciosa foi confirmada simulando um servidor SMTP fora do ar. A causa exata do bug registrado no Trello ainda não é conhecida (ver a própria task).
+
+| ID   | Bug no Trello                                         | Tam. | Lado            | Branch                              | Status  |
+| ---- | ----------------------------------------------------- | ---- | --------------- | ----------------------------------- | ------- |
+| D-12 | Sessão expirada deixa a tela quebrada                 | S    | Frontend        | `fix/d12-sessao-expirada`           | A fazer |
+| D-13 | Dados do usuário anterior aparecem após trocar login  | S    | Frontend        | `fix/d13-troca-de-usuario`          | A fazer |
+| D-14 | Simulado pode ser cadastrado com 0 questões           | S    | Backend         | `fix/d14-total-questoes-minimo`     | A fazer |
+| D-15 | E-mail diferencia maiúsculas e minúsculas             | M    | Backend         | `fix/d15-email-sem-maiusculas`      | A fazer |
+| D-16 | Falha no envio do e-mail                              | M    | Backend e config | `fix/d16-envio-de-email`           | A fazer |
+
+As cinco são independentes. A D-12 e a D-13 são de frontend e pequenas. As outras três são de backend: combine com o time quem faz cada uma.
+
+### D-12 · Sessão expirada deixa a tela quebrada
+
+**Como reproduzir:** fazer login e deixar o app aberto até o token vencer (60 min), ou alterar o `expiraEm` da sessão no `localStorage` para uma data no passado. Depois, navegar para outra tela. O app **não volta ao login**: a tela fica vazia, com o aviso "Token de acesso inválido ou ausente".
+
+**Causa** (`frontend/src/services/api.js`, função `fetchComToken`):
+
+1. `lerSessao()` vê que a sessão venceu, apaga a sessão do storage e devolve `null`.
+2. A requisição sai **sem** o header `Authorization`, e a API responde 401.
+3. A linha `if (response.status === 401 && sessao) encerrarSessao();` não encerra nada, porque `sessao` já é `null`.
+4. O `SessaoProvider` continua com a sessão antiga no estado do React. Por isso a `RotaPrivada` não manda para o login.
+
+**O que fazer:**
+
+1. Em `fetchComToken`, encerrar a sessão em **qualquer 401 de requisição privada** (`!publico`), mesmo que `lerSessao()` tenha devolvido `null`.
+2. Opcional, mas recomendado: antes de enviar, se não houver sessão válida numa requisição privada, chamar `encerrarSessao()` e não fazer a requisição.
+
+**Testes:**
+
+- Em `frontend/src/routes/Autenticacao.test.jsx` já existem dois testes parecidos: "token recusado pela API (401)…" e "sessão vencida é descartada". Esse segundo testa a sessão vencida **ao abrir** o app.
+- Falta o caso do bug: abrir uma tela com sessão válida, mudar o `expiraEm` no `localStorage` para o passado, navegar pelo menu e verificar que o app volta para o login.
+
+**Aceite:** com a sessão vencida, a próxima navegação leva ao login, e não a uma tela quebrada.
+
+### D-13 · Dados do usuário anterior após trocar de login
+
+**Como reproduzir:**
+
+1. O professor A está numa tela, por exemplo `/turmas/3`, e a sessão dele cai: token vencido ou recusado pela API.
+2. O app manda para o login.
+3. A professora B entra. Ela vai parar em **`/turmas/3`, a tela do A**, em vez do dashboard dela.
+
+**Causa:**
+
+- Quando não há sessão, `frontend/src/routes/RotaPrivada.jsx` guarda a URL atual em `state.de`, para voltar a ela depois do login.
+- Depois do login, `frontend/src/screens/auth/LoginScreen.jsx` (linhas ~31–32) navega para `state.de` sem conferir se quem entrou é o mesmo usuário.
+
+**O que fazer:**
+
+1. **Lembrar quem era o usuário anterior.** No `SessaoProvider` (`routes/sessao.jsx`), quando a sessão for encerrada, seja por `sair` ou pelo evento de sessão encerrada, guardar o `id` desse usuário num `useRef`, como `ultimoUsuarioId`, e expô-lo no contexto.
+2. **Guardar o id junto da URL.** A `RotaPrivada` envia esse id no `state`, junto do `de`: `{ de: location, usuarioId: ultimoUsuarioId }`.
+3. **Comparar no login.** No `LoginScreen`, só usar o `de` se não houver `usuarioId` no `state` ou se ele for igual ao `id` de quem acabou de entrar. Caso contrário, ir para `rotaInicial(usuario)`.
+   - Assim, um link aberto sem sessão nenhuma continua funcionando: ele não tem `usuarioId`, então o login leva para a URL do link.
+4. **Limpar as listas no logout.** Em `App.jsx` (linhas ~71–74), as listas de turmas e de usuários da sessão anterior ficam na memória até a nova sessão terminar de carregar. Quando `sessao` virar `null`, limpe essas listas.
+
+**Testes:** o cenário do item "Como reproduzir": A tem a sessão recusada em `/turmas/3`, B entra e deve ir para `/painel`. Também o caso que precisa continuar funcionando: **o mesmo** usuário entra de novo e volta para `/turmas/3`.
+
+**Aceite:** outro usuário que entra depois de uma sessão cair vai para a tela inicial dele. O mesmo usuário continua voltando para onde estava.
+
+### D-14 · Simulado com 0 questões
+
+**Como reproduzir:** `POST /simulados` com `"total_questoes": 0`, ou `-5`, devolve 201. O `PATCH` aceita os mesmos valores.
+
+**Situação no frontend:** as telas de criar (`SimuladoCriarScreen.jsx`) e de editar (`SimuladoEditarScreen.jsx`) já bloqueiam valores menores que 1. O problema está só na API.
+
+**O que fazer** em `monolito/app/schemas/simulado.py`:
+
+1. `SimuladoBase.total_questoes`: `int = Field(..., ge=1)`.
+2. `SimuladoUpdate.total_questoes`: `Optional[int] = Field(None, ge=1)`.
+
+**Atenção:** a branch `fix/simulado-exige-turma` do Gabriel, ainda não mergeada, mexe no mesmo arquivo para exigir pelo menos uma turma. Combine com ele: ou as duas mudanças entram juntas, ou uma é feita depois da outra.
+
+**Testes:** em `monolito/tests/test_simulado_alunos_router.py`, verificar que criar e editar com 0 e com −1 retorna 422.
+
+**Aceite:** a API recusa total de questões menor que 1, tanto na criação quanto na edição. `pytest` passa.
+
+### D-15 · E-mail diferencia maiúsculas
+
+**Como reproduzir:**
+
+- O login com `Professor@Metamorfose.com` retorna 401. Com `professor@metamorfose.com`, funciona.
+- O admin consegue cadastrar `PROFESSOR@metamorfose.com` mesmo já existindo `professor@metamorfose.com`. O resultado são duas contas para a mesma pessoa.
+
+**Causa:** `buscar_por_email` (`monolito/app/repositories/usuario_repository.py`, linha ~13) compara o texto exato. O `auth_service` já usa `email.strip().lower()`, mas só para contar tentativas de login. A comparação entre os dois lugares é inconsistente.
+
+**O que fazer:**
+
+1. **Normalizar a entrada.** Converter o e-mail com `strip().lower()` em todos os pontos de entrada:
+   - `UsuarioBase` (cadastro e edição);
+   - `LoginRequest`;
+   - `AtivarContaRequest`;
+   - `ReenviarAtivacaoRequest`;
+   - `EsqueciSenhaRequest`;
+   - `RedefinirSenhaRequest`.
+
+   Todos ficam em `monolito/app/schemas/usuario.py`. Um `field_validator` em cada um resolve.
+2. **Normalizar a busca.** Em `buscar_por_email`, comparar sem diferenciar maiúsculas: `func.lower(Usuario.email) == email.strip().lower()`. Assim os registros antigos continuam sendo encontrados.
+3. **Corrigir os dados que já existem:**
+   - Primeiro, procurar duplicatas: `SELECT lower(email), count(*) FROM usuario GROUP BY 1 HAVING count(*) > 1;`. Se houver, decida com o time qual conta manter **antes** de continuar.
+   - Depois, converter os e-mails: `UPDATE usuario SET email = lower(trim(email));`.
+
+   Documente esses comandos no PR, para quem tiver banco antigo.
+
+**Testes:** em `monolito/tests/test_auth.py` e `test_usuario_router.py`:
+
+- login com maiúsculas funciona;
+- cadastrar o mesmo e-mail com outra capitalização retorna 400 ("Já existe um usuário cadastrado com este e-mail");
+- ativação e recuperação de senha funcionam com maiúsculas.
+
+**Aceite:** o e-mail não diferencia maiúsculas em nenhum fluxo, e não é possível criar duas contas para o mesmo e-mail.
+
+### D-16 · Falha no envio do e-mail
+
+**Primeiro passo: descobrir o que aconteceu.** A causa exata do bug registrado no Trello não é conhecida. Pergunte a quem registrou o bug:
+
+- em qual ambiente aconteceu;
+- qual provedor de SMTP e qual porta foram usados;
+- qual erro aparece no log, com `docker compose logs monolito | grep -i "smtp\|Falha ao enviar"`.
+
+**Problemas confirmados no código** (`monolito/app/services/email_service.py`):
+
+1. **A falha é silenciosa.** O erro do SMTP é capturado e só vai para o log. A API responde sucesso, e a tela diz que o código foi enviado mesmo quando não foi.
+2. **A porta 465 (SSL) não funciona.** O código usa só `smtplib.SMTP` com STARTTLS. Provedores que exigem SSL direto na porta 465 falham.
+3. **`SMTP_USE_TLS` não é configurável.** A opção existe no `config.py`, mas não é repassada no `docker-compose.yml` nem aparece no `.env.example`.
+4. **Fora de `development`, um SMTP ausente vira só um erro no log.** Ninguém recebe o código, e nada aparece na tela.
+
+**O que fazer:**
+
+1. **Avisar o admin quando o envio falhar no cadastro de professor** (`POST /usuarios`, rota autenticada):
+   - fazer `_enviar_codigo` devolver se conseguiu ou não enviar;
+   - a API responde 201 com um aviso, por exemplo "Professor cadastrado, mas o e-mail não foi enviado. Use 'Reenviar código'";
+   - o frontend mostra esse aviso com `mostrarErro`.
+2. **Manter as rotas públicas como estão** (`/auth/reenviar-ativacao` e `/auth/esqueci-senha`): resposta genérica e falha só no log. Retornar erro nelas revelaria quais e-mails estão cadastrados; o código já evita isso de propósito.
+3. **Suportar a porta 465:** usar `smtplib.SMTP_SSL` quando `SMTP_PORT=465`, ou com uma opção `SMTP_USE_SSL`.
+4. **Configuração:**
+   - repassar `SMTP_USE_TLS` (e `SMTP_USE_SSL`, se for criado) no `docker-compose.yml` e no `.env.example`;
+   - documentar no README um exemplo de configuração. Para o Gmail: `smtp.gmail.com`, porta 587, e uma "senha de app" em `SMTP_PASSWORD`, não a senha da conta.
+
+**Testes:** em `monolito/tests/`, simular uma falha do SMTP (`monkeypatch` no `smtplib.SMTP`) e verificar duas coisas:
+
+- o cadastro de professor devolve o aviso;
+- as rotas públicas continuam respondendo 202.
+
+**Aceite:**
+
+- Com um SMTP real configurado, os códigos chegam.
+- Com o SMTP fora do ar, o admin é avisado no cadastro.
+- A porta 465 funciona.
+
+---
+
 ## Histórico: Fase 1 (concluída)
 
 > Tudo abaixo descreve o código **como ele era em 28/10/2026**: navegação sem router, nota não salva e login só visual. Mantido só como registro.
