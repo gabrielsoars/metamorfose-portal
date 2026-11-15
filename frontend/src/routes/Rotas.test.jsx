@@ -100,7 +100,8 @@ describe('rotas: abrir cada tela pela URL', () => {
     ['/admin', 'Usuários'],
     ['/admin/professores/novo', 'Novo Cadastro'],
     ['/admin/professores/7', 'Editar Professor'],
-    ['/painel', 'Olá, Prof. Pedro'],
+    // Painel e perfil mostram o usuário logado; aqui é o ADMIN de teste ("Admin de Teste").
+    ['/painel', 'Olá, Prof. Admin'],
     ['/painel/questoes-erro', 'Questões com maior erro'],
     ['/turmas', 'Minhas Turmas'],
     ['/turmas/nova', 'Nova Turma'],
@@ -113,7 +114,7 @@ describe('rotas: abrir cada tela pela URL', () => {
     ['/simulados/9/gabarito', 'Revisar Gabarito'],
     ['/simulados/9/alunos/10/correcao', 'Bruno'],
     ['/simulados/9/alunos/10/boletim', 'Bruno'],
-    ['/perfil', 'Prof. Pedro'],
+    ['/perfil', 'Prof. Admin de Teste'],
   ])('%s abre a tela "%s"', async (url, titulo) => {
     const router = renderApp(url)
 

@@ -4,6 +4,7 @@ import { C } from '../../data/constants.js';
 import { listarSimulados } from '../../services/simuladosService.js';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
+import { useUsuarioLogado } from '../../routes/usuarioLogado.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 import { mostrarErro } from '../../components/avisosEstado.js';
@@ -13,6 +14,7 @@ const formatarData = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
 
 export function SimuladosListaScreen() {
   const navigate = useNavigate();
+  const usuario = useUsuarioLogado();
   const [search, setSearch] = useState('');
   const [simulados, setSimulados] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,7 @@ export function SimuladosListaScreen() {
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Gestão de Provas</p>
           <h1 className="text-2xl font-bold text-gray-900 leading-none">Meus Simulados</h1>
         </div>
-        <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-black font-bold text-sm" style={{ background: C.yellow }}>P</div>
+        <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-black font-bold text-sm" style={{ background: C.yellow }}>{usuario.inicial}</div>
       </header>
 
       <div className={`bg-white px-6 pb-4 ${GUTTER} border-b border-gray-100 z-10 flex gap-2`}>
