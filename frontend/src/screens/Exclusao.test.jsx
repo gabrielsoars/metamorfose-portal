@@ -20,7 +20,6 @@ describe('Excluir turma e aluno', () => {
       turmas = turmas.filter((t) => t.id !== 3)
       return json(null, 204)
     }
-    vi.spyOn(window, 'alert').mockImplementation(() => {})
 
     vi.stubGlobal('fetch', vi.fn(async (input, options = {}) => {
       const url = String(input)
@@ -100,7 +99,7 @@ describe('Excluir turma e aluno', () => {
     await user.click(screen.getByRole('menuitem', { name: /excluir turma/i }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }))
 
-    await waitFor(() => expect(window.alert).toHaveBeenCalledWith(mensagem))
+    expect(await screen.findByText(mensagem)).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Extensivo Noturno' })).toBeInTheDocument()
   })
@@ -146,7 +145,6 @@ describe('Excluir simulado', () => {
 
   beforeEach(() => {
     simulados = [simulado, { ...simulado, id: 10, titulo: 'Outro Simulado' }]
-    vi.spyOn(window, 'alert').mockImplementation(() => {})
 
     vi.stubGlobal('fetch', vi.fn(async (input, options = {}) => {
       const url = String(input)
@@ -216,7 +214,7 @@ describe('Excluir simulado', () => {
     await user.click(screen.getByRole('menuitem', { name: /excluir simulado/i }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }))
 
-    await waitFor(() => expect(window.alert).toHaveBeenCalledWith('Simulado não encontrado'))
+    expect(await screen.findByText('Simulado não encontrado')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '1º Simulado ENEM' })).toBeInTheDocument()
   })
 })

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
 import { OrangeBtn, Sheet } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
+import { mostrarErro } from '../../components/avisosEstado.js';
 
 export function AdminGestaoScreen({ professor, onRefresh }) {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ export function AdminGestaoScreen({ professor, onRefresh }) {
       if (onRefresh) await onRefresh();
       navigate(rotas.admin, { replace: true });
     } catch (error) {
-      window.alert(error.message || 'Não foi possível salvar o professor.');
+      mostrarErro(error.message || 'Não foi possível salvar o professor.');
     } finally {
       setSaving(false);
     }

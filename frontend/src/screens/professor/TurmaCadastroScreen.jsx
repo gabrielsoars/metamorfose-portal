@@ -7,6 +7,7 @@ import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
+import { mostrarErro } from '../../components/avisosEstado.js';
 
 const inputClass = 'w-full px-4 py-3 bg-white rounded-xl border border-gray-200 outline-none text-gray-800 font-medium';
 const onFocus = (e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; };
@@ -24,7 +25,7 @@ export function TurmaCadastroScreen({ turma, onRefresh }) {
   async function handleSave() {
     if (saving) return;
     if (!nome.trim() || !Number(ano)) {
-      window.alert('Preencha o nome e o ano da turma.');
+      mostrarErro('Preencha o nome e o ano da turma.');
       return;
     }
 
@@ -42,7 +43,7 @@ export function TurmaCadastroScreen({ turma, onRefresh }) {
         navigate(rotas.turma(criada.id), { replace: true });
       }
     } catch (error) {
-      window.alert(error.message || (editando ? 'Não foi possível atualizar a turma.' : 'Não foi possível criar a turma.'));
+      mostrarErro(error.message || (editando ? 'Não foi possível atualizar a turma.' : 'Não foi possível criar a turma.'));
       setSaving(false);
     }
   }

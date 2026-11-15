@@ -9,6 +9,7 @@ import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 import { ImagePicker } from '../../components/ImagePicker.jsx';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
+import { mostrarErro } from '../../components/avisosEstado.js';
 
 const AVISO_STATUS = {
   sem_resposta: 'Atenção: Em branco ou rasura',
@@ -35,7 +36,7 @@ export function EscaneamentoScreen({ simulado, aluno }) {
         if (isMounted) setGabarito((Array.isArray(itens) ? itens : []).filter((g) => g.num_questao <= simulado.total_questoes));
       })
       .catch((error) => {
-        if (isMounted) window.alert(error.message || 'Não foi possível carregar o gabarito oficial.');
+        if (isMounted) mostrarErro(error.message || 'Não foi possível carregar o gabarito oficial.');
       });
 
     return () => {
@@ -55,7 +56,7 @@ export function EscaneamentoScreen({ simulado, aluno }) {
         }
       })
       .catch((error) => {
-        if (isMounted) window.alert(error.message || 'Não foi possível carregar as respostas salvas.');
+        if (isMounted) mostrarErro(error.message || 'Não foi possível carregar as respostas salvas.');
       });
 
     return () => {
@@ -100,11 +101,11 @@ export function EscaneamentoScreen({ simulado, aluno }) {
   const handleConcluir = async () => {
     if (saving) return;
     if (!gabarito || gabarito.length === 0) {
-      window.alert('Cadastre o gabarito oficial antes de concluir a correção.');
+      mostrarErro('Cadastre o gabarito oficial antes de concluir a correção.');
       return;
     }
     if (Object.keys(answers).length === 0) {
-      window.alert('Envie a foto ou marque ao menos uma resposta antes de concluir.');
+      mostrarErro('Envie a foto ou marque ao menos uma resposta antes de concluir.');
       return;
     }
 
@@ -113,7 +114,7 @@ export function EscaneamentoScreen({ simulado, aluno }) {
       await salvarRespostasAluno(simulado.id, aluno.id, montarRespostas(gabarito, answers, total));
       navigate(rotas.simulado(simulado.id), { replace: true });
     } catch (error) {
-      window.alert(error.message || 'Não foi possível salvar a correção.');
+      mostrarErro(error.message || 'Não foi possível salvar a correção.');
       setSaving(false);
     }
   };

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Camera, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { prepararImagem, validarImagem } from './imagemUtils.js';
+import { mostrarErro } from './avisosEstado.js';
 
 // Celular: "Tirar foto" (câmera traseira) e "Anexar da galeria".
 // Desktop: "Anexar foto" e arrastar e soltar, sem câmera.
@@ -25,7 +26,7 @@ export function ImagePicker({ onSelect, previewUrl = null, processing = false, c
     if (!arquivo) return;
     const erro = validarImagem(arquivo);
     if (erro) {
-      window.alert(erro);
+      mostrarErro(erro);
       return;
     }
 
@@ -34,7 +35,7 @@ export function ImagePicker({ onSelect, previewUrl = null, processing = false, c
       const pronto = await prepararImagem(arquivo);
       await onSelect(pronto);
     } catch (error) {
-      window.alert(error.message || 'Não foi possível processar a imagem.');
+      mostrarErro(error.message || 'Não foi possível processar a imagem.');
     } finally {
       setPreparando(false);
     }

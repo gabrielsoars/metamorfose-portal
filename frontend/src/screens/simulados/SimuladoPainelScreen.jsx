@@ -8,6 +8,7 @@ import { DESKTOP_QUERY, useEscape, useMediaQuery } from '../../components/hooks.
 import { ConfirmDialog } from '../../components/ConfirmDialog.jsx';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
+import { mostrarErro } from '../../components/avisosEstado.js';
 
 // Ações do menu ⋮ do cabeçalho. Para incluir outra, basta acrescentar um item aqui.
 const MENU_ACOES = [
@@ -44,7 +45,7 @@ export function SimuladoPainelScreen({ simulado }) {
         if (isMounted) setAlunos((resposta.alunos || []).map(normalizeAlunoSimulado));
       })
       .catch((error) => {
-        if (isMounted) window.alert(error.message || 'Não foi possível carregar os alunos.');
+        if (isMounted) mostrarErro(error.message || 'Não foi possível carregar os alunos.');
       });
 
     return () => {
@@ -59,7 +60,7 @@ export function SimuladoPainelScreen({ simulado }) {
       navigate(rotas.simulados, { replace: true });
     } catch (error) {
       setConfirmDelete(false);
-      window.alert(error.message || 'Não foi possível excluir o simulado.');
+      mostrarErro(error.message || 'Não foi possível excluir o simulado.');
     } finally {
       setDeleting(false);
     }

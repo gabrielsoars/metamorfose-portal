@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ImagePicker } from './ImagePicker.jsx'
+import { Avisos } from './Avisos.jsx'
 import { prepararImagem, validarImagem } from './imagemUtils.js'
 
 function mockPointerCoarse(coarse) {
@@ -15,7 +16,6 @@ function enviarArquivo(input, arquivo) {
 
 describe('ImagePicker', () => {
   beforeEach(() => {
-    window.alert = vi.fn()
     URL.createObjectURL = vi.fn(() => 'blob:fake')
     URL.revokeObjectURL = vi.fn()
     // jsdom não decodifica imagem (onload nunca dispara): simula falha e o arquivo segue como está.
@@ -53,24 +53,24 @@ describe('ImagePicker', () => {
   it('rejeita arquivo que não é imagem, avisa e não chama onSelect', async () => {
     mockPointerCoarse(false)
     const onSelect = vi.fn()
-    render(<ImagePicker onSelect={onSelect} />)
+    render(<><ImagePicker onSelect={onSelect} /><Avisos /></>)
 
     enviarArquivo(screen.getByTestId('input-galeria'), new File(['x'], 'notas.pdf', { type: 'application/pdf' }))
 
-    await waitFor(() => expect(window.alert).toHaveBeenCalledWith(expect.stringMatching(/imagem/i)))
+    expect(await screen.findByText(/arquivo inválido\. envie uma imagem/i)).toBeInTheDocument()
     expect(onSelect).not.toHaveBeenCalled()
   })
 
   it('rejeita imagem acima do limite de tamanho', async () => {
     mockPointerCoarse(false)
     const onSelect = vi.fn()
-    render(<ImagePicker onSelect={onSelect} />)
+    render(<><ImagePicker onSelect={onSelect} /><Avisos /></>)
 
     const grande = new File(['x'], 'grande.jpg', { type: 'image/jpeg' })
     Object.defineProperty(grande, 'size', { value: 30 * 1024 * 1024 })
     enviarArquivo(screen.getByTestId('input-galeria'), grande)
 
-    await waitFor(() => expect(window.alert).toHaveBeenCalledWith(expect.stringMatching(/muito grande/i)))
+    expect(await screen.findByText(/a imagem é muito grande/i)).toBeInTheDocument()
     expect(onSelect).not.toHaveBeenCalled()
   })
 

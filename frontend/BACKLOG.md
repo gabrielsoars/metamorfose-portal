@@ -39,6 +39,9 @@ O projeto agora exige autenticação. Para rodar localmente:
    - adicionar a coluna, sem perder dados:
      `docker compose exec -T application_db psql -U postgres -d <POSTGRES_DB> -c "ALTER TABLE gabarito ADD COLUMN anulada BOOLEAN NOT NULL DEFAULT false"`
    - ou recriar o banco do zero com `docker compose down -v`, que **apaga todos os dados**.
+4. **Frontend em branco ou com erro `Failed to resolve import "react-router-dom"`:** o `node_modules` do contêiner do frontend fica num volume anônimo, que é reaproveitado mesmo quando a imagem é reconstruída. Por isso, dependências adicionadas depois que o contêiner foi criado (como o `react-router-dom`) não aparecem nele. Para reinstalar:
+   `docker compose up -d --build --renew-anon-volumes frontend_web`
+   Isso não mexe no banco.
 
 ### Regras para quem executar as tasks da fase 2
 

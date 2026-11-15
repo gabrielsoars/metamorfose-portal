@@ -7,6 +7,7 @@ import { rotas } from '../../routes/rotas.js';
 import { OrangeBtn } from '../../components/ui.jsx';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
+import { mostrarErro } from '../../components/avisosEstado.js';
 
 const inputClass = 'w-full px-4 py-3 bg-white border border-gray-200 rounded-xl outline-none text-gray-800 font-medium';
 const onFocus = (e) => { e.target.style.borderColor = C.orange; e.target.style.boxShadow = `0 0 0 2px ${C.orange}33`; };
@@ -25,7 +26,7 @@ export function SimuladoCriarScreen({ turmas = [] }) {
   async function handleSave() {
     if (saving) return;
     if (!titulo.trim() || !data || !(Number(totalQuestoes) >= 1)) {
-      window.alert('Preencha o título, a data e o número de questões.');
+      mostrarErro('Preencha o título, a data e o número de questões.');
       return;
     }
 
@@ -39,7 +40,7 @@ export function SimuladoCriarScreen({ turmas = [] }) {
       });
       navigate(rotas.simuladoGabarito(criado.id), { replace: true });
     } catch (error) {
-      window.alert(error.message || 'Não foi possível criar o simulado.');
+      mostrarErro(error.message || 'Não foi possível criar o simulado.');
       setSaving(false);
     }
   }
