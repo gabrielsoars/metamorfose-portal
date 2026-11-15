@@ -8,10 +8,12 @@ import { HistoricoMensalCard } from './HistoricoMensalCard.jsx';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { rotas, filtroDaUrl } from '../../routes/rotas.js';
 import { useSair } from '../../routes/sessao.jsx';
+import { useUsuarioLogado } from '../../routes/usuarioLogado.js';
 
 export function ProfDashboardScreen() {
   const navigate = useNavigate();
   const sair = useSair();
+  const usuario = useUsuarioLogado();
   const [searchParams] = useSearchParams();
   // O filtro fica na URL (?turma=&simulado=): sobrevive ao F5 e ao voltar. Trocar o filtro substitui a entrada.
   const questoes = useQuestoesErro(filtroDaUrl(searchParams), (novo) => navigate(rotas.painel(novo), { replace: true }));
@@ -25,11 +27,11 @@ export function ProfDashboardScreen() {
       <header className={`bg-white px-6 ${HEADER_TOP} pb-4 ${GUTTER} shadow-sm z-20 flex justify-between items-center`}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-black font-bold text-sm" style={{ background: C.yellow }}>
-            P
+            {usuario.inicial}
           </div>
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Visão Geral</p>
-            <h1 className="text-lg font-bold text-gray-900 leading-none">Olá, Prof. Pedro</h1>
+            <h1 className="text-lg font-bold text-gray-900 leading-none">Olá, Prof. {usuario.primeiroNome}</h1>
           </div>
         </div>
         <div className="flex items-center gap-2">

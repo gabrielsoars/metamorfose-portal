@@ -3,12 +3,14 @@ import { C } from '../../data/constants.js';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
 import { useSair } from '../../routes/sessao.jsx';
+import { useUsuarioLogado } from '../../routes/usuarioLogado.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER_FORM, HEADER_TOP } from '../../components/layout.js';
 
 export function ProfPerfilScreen() {
   const navigate = useNavigate();
   const sair = useSair();
+  const usuario = useUsuarioLogado();
   return (
     <AppShell active="perfil" onNav={(tab) => {
       if (tab === 'dashboard') navigate(rotas.painel());
@@ -17,12 +19,12 @@ export function ProfPerfilScreen() {
     }}>
       <header className={`bg-white ${HEADER_TOP} pb-6 px-6 shadow-sm z-20 flex flex-col items-center justify-center border-b border-gray-100`}>
         <div className="w-20 h-20 rounded-full border-4 border-white shadow-md flex items-center justify-center text-black font-black text-2xl mb-3" style={{ background: C.yellow }}>
-          P
+          {usuario.inicial}
         </div>
-        <h1 className="text-xl font-bold text-gray-900 leading-none">Prof. Pedro</h1>
-        <p className="text-xs font-medium text-gray-500 mt-1">pedro@unesp.br</p>
+        <h1 className="text-xl font-bold text-gray-900 leading-none">Prof. {usuario.nome}</h1>
+        <p className="text-xs font-medium text-gray-500 mt-1">{usuario.email}</p>
         <span className="mt-2 inline-block px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-lg uppercase tracking-wider">
-          Professor • Matemática
+          {usuario.materia ? `Professor • ${usuario.materia}` : 'Professor'}
         </span>
       </header>
 

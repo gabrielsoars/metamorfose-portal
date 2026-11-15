@@ -22,7 +22,7 @@ Tamanho: S (≤ meio dia) · M (1–2 dias)
 | ---- | ------------------------------------------------------------- | ---- | -------------------------------- | --------------------- |
 | D-10 | Tirar o botão de notificações do dashboard                    | S    | `feat/d10-remover-notificacoes`  | ✅ Mergeada (PR #30)   |
 | D-09 | Aviso de erro no canto da tela, no lugar do `window.alert`    | M    | `feat/d09-aviso-erro`            | ✅ Mergeada (PR #31)   |
-| D-11 | Mostrar o professor logado no lugar de "Prof. Pedro" fixo     | S    | `feat/d11-professor-logado`      | Em andamento          |
+| D-11 | Mostrar o professor logado no lugar de "Prof. Pedro" fixo     | S    | `feat/d11-professor-logado`      | ✅ Pronta para PR      |
 
 Depois da D-09, os erros devem ser mostrados com `mostrarErro(mensagem)` de `components/avisosEstado.js`, e não com `window.alert`.
 

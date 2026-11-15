@@ -3,11 +3,13 @@ import { Plus, Search, Users, ChevronRight } from 'lucide-react';
 import { C, FALLBACK_TURMAS } from '../../data/constants.js';
 import { useNavigate } from 'react-router-dom';
 import { rotas } from '../../routes/rotas.js';
+import { useUsuarioLogado } from '../../routes/usuarioLogado.js';
 import { AppShell } from '../../components/AppShell.jsx';
 import { GUTTER, HEADER_TOP } from '../../components/layout.js';
 
 export function TurmasScreen({ turmas, onRefresh }) {
   const navigate = useNavigate();
+  const usuario = useUsuarioLogado();
   const [search, setSearch] = useState('');
   const filtered = (turmas || FALLBACK_TURMAS).filter((t) => (t.name || '').toLowerCase().includes(search.toLowerCase()));
 
@@ -22,7 +24,7 @@ export function TurmasScreen({ turmas, onRefresh }) {
           <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: C.orange }}>Gestão de Alunos</p>
           <h1 className="text-2xl font-bold text-gray-900 leading-none">Minhas Turmas</h1>
         </div>
-        <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-black font-bold text-sm" style={{ background: C.yellow }}>P</div>
+        <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-black font-bold text-sm" style={{ background: C.yellow }}>{usuario.inicial}</div>
       </header>
 
       <div className={`bg-white px-6 pb-4 ${GUTTER} border-b border-gray-100 z-10`}>
