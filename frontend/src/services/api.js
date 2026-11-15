@@ -6,6 +6,12 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:80
 // `publico: true` (login, ativação...) não manda o token: um 401 ali é senha errada, não sessão vencida.
 export async function fetchComToken(url, { publico = false, ...options } = {}) {
   const sessao = publico ? null : lerSessao();
+  // Chamada privada sem sessão válida: a sessão venceu com a tela aberta (`lerSessao` já a descartou).
+  // Avisa o app, que volta ao login, em vez de mandar a chamada sem token.
+  if (!publico && !sessao) {
+    encerrarSessao();
+    throw new Error('Sua sessão expirou. Entre novamente.');
+  }
   const response = await fetch(url, {
     ...options,
     headers: {

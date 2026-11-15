@@ -28,8 +28,10 @@ export function LoginScreen() {
     try {
       const { usuario } = await entrar(email.trim(), senha);
       // Volta para a tela que pediu o login (link copiado, sessão vencida) ou vai para o início do perfil.
-      const de = location.state?.de;
-      navigate(de ? de.pathname + de.search : rotaInicial(usuario), { replace: true });
+      // Se a sessão caiu com outra pessoa nessa tela, quem entrou agora vai para o próprio início.
+      const { de, usuarioId } = location.state || {};
+      const voltar = de && (usuarioId == null || usuarioId === usuario.id);
+      navigate(voltar ? de.pathname + de.search : rotaInicial(usuario), { replace: true });
     } catch (falha) {
       setErro(mensagemDeErro(falha));
       setEnviando(false);

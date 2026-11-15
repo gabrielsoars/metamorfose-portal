@@ -22,7 +22,7 @@ Tamanho: S (≤ meio dia) · M (1–2 dias)
 | ---- | ------------------------------------------------------------- | ---- | -------------------------------- | --------------------- |
 | D-10 | Tirar o botão de notificações do dashboard                    | S    | `feat/d10-remover-notificacoes`  | ✅ Mergeada (PR #30)   |
 | D-09 | Aviso de erro no canto da tela, no lugar do `window.alert`    | M    | `feat/d09-aviso-erro`            | ✅ Mergeada (PR #31)   |
-| D-11 | Mostrar o professor logado no lugar de "Prof. Pedro" fixo     | S    | `feat/d11-professor-logado`      | ✅ Pronta para PR      |
+| D-11 | Mostrar o professor logado no lugar de "Prof. Pedro" fixo     | S    | `feat/d11-professor-logado`      | ✅ Mergeada (PR #33)   |
 
 Depois da D-09, os erros devem ser mostrados com `mostrarErro(mensagem)` de `components/avisosEstado.js`, e não com `window.alert`.
 
@@ -167,8 +167,8 @@ Os cinco bugs abaixo vieram da coluna "To Do" do Trello. Todos foram verificados
 
 | ID   | Bug no Trello                                         | Tam. | Lado            | Branch                              | Status  |
 | ---- | ----------------------------------------------------- | ---- | --------------- | ----------------------------------- | ------- |
-| D-12 | Sessão expirada deixa a tela quebrada                 | S    | Frontend        | `fix/d12-sessao-expirada`           | A fazer |
-| D-13 | Dados do usuário anterior aparecem após trocar login  | S    | Frontend        | `fix/d13-troca-de-usuario`          | A fazer |
+| D-12 | Sessão expirada deixa a tela quebrada                 | S    | Frontend        | `fix/d12-d13-sessao` (junto com a D-13) | ✅ Pronta para PR |
+| D-13 | Dados do usuário anterior aparecem após trocar login  | S    | Frontend        | `fix/d12-d13-sessao` (junto com a D-12) | ✅ Pronta para PR |
 | D-14 | Simulado pode ser cadastrado com 0 questões           | S    | Backend         | `fix/d14-total-questoes-minimo`     | A fazer |
 | D-15 | E-mail diferencia maiúsculas e minúsculas             | M    | Backend         | `fix/d15-email-sem-maiusculas`      | A fazer |
 | D-16 | Falha no envio do e-mail                              | M    | Backend e config | `fix/d16-envio-de-email`           | A fazer |
@@ -190,6 +190,10 @@ As cinco são independentes. A D-12 e a D-13 são de frontend e pequenas. As out
 
 1. Em `fetchComToken`, encerrar a sessão em **qualquer 401 de requisição privada** (`!publico`), mesmo que `lerSessao()` tenha devolvido `null`.
 2. Opcional, mas recomendado: antes de enviar, se não houver sessão válida numa requisição privada, chamar `encerrarSessao()` e não fazer a requisição.
+
+> **Como foi implementado:** só o item 2. Com o item 1, uma requisição atrasada da tela anterior, que sai sem token depois do logout, recebia 401 e **deslogava o próximo usuário**. Isso apareceu nos testes de rota. Por isso:
+> - uma chamada privada sem sessão válida não é enviada: encerra a sessão e mostra "Sua sessão expirou. Entre novamente.";
+> - um 401 só encerra a sessão quando a chamada saiu **com** token, como já era antes.
 
 **Testes:**
 
