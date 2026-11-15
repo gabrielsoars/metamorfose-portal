@@ -18,13 +18,13 @@ Tamanho: S (≤ meio dia) · M (1–2 dias)
 
 ## Fase 2: tasks abertas
 
-| ID   | Task                                                          | Tam. | Branch                           | Status  |
-| ---- | ------------------------------------------------------------- | ---- | -------------------------------- | ------- |
-| D-10 | Tirar o botão de notificações do dashboard                    | S    | `feat/d10-remover-notificacoes`  | A fazer |
-| D-09 | Aviso de erro no canto da tela, no lugar do `window.alert`    | M    | `feat/d09-aviso-erro`            | A fazer |
-| D-11 | Mostrar o professor logado no lugar de "Prof. Pedro" fixo     | S    | `feat/d11-professor-logado`      | A fazer |
+| ID   | Task                                                          | Tam. | Branch                           | Status                |
+| ---- | ------------------------------------------------------------- | ---- | -------------------------------- | --------------------- |
+| D-10 | Tirar o botão de notificações do dashboard                    | S    | `feat/d10-remover-notificacoes`  | ✅ Mergeada (PR #30)   |
+| D-09 | Aviso de erro no canto da tela, no lugar do `window.alert`    | M    | `feat/d09-aviso-erro`            | ✅ Mergeada (PR #31)   |
+| D-11 | Mostrar o professor logado no lugar de "Prof. Pedro" fixo     | S    | `feat/d11-professor-logado`      | Em andamento          |
 
-As três são independentes e podem ser feitas em qualquer ordem. A D-10 é a mais rápida. A D-10 e a D-11 mexem no mesmo cabeçalho do dashboard: se forem feitas em paralelo, o segundo PR pode ter um conflito pequeno, fácil de resolver.
+Depois da D-09, os erros devem ser mostrados com `mostrarErro(mensagem)` de `components/avisosEstado.js`, e não com `window.alert`.
 
 ### Antes de começar: ambiente local
 
