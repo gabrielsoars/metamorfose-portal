@@ -8,6 +8,9 @@ const SessaoContext = createContext(null);
 
 export function SessaoProvider({ children }) {
   const [sessao, setSessao] = useState(lerSessao);
+  // Quem estava logado por último. Continua definido depois que a sessão cai: o login só volta
+  // para a tela em que a sessão caiu se quem entrar for a mesma pessoa.
+  const [ultimoUsuarioId, setUltimoUsuarioId] = useState(() => lerSessao()?.usuario?.id ?? null);
 
   // Token recusado pela API em qualquer tela: sai da sessão (a RotaPrivada leva ao login).
   useEffect(() => {
@@ -22,6 +25,7 @@ export function SessaoProvider({ children }) {
     const nova = { token, expiraEm: Date.now() + expiraEmSegundos * 1000, usuario };
     gravarSessao(nova);
     setSessao(nova);
+    setUltimoUsuarioId(usuario.id);
     return nova;
   }, []);
 
@@ -30,7 +34,7 @@ export function SessaoProvider({ children }) {
     setSessao(null);
   }, []);
 
-  const valor = useMemo(() => ({ sessao, entrar, sair }), [sessao, entrar, sair]);
+  const valor = useMemo(() => ({ sessao, ultimoUsuarioId, entrar, sair }), [sessao, ultimoUsuarioId, entrar, sair]);
   return <SessaoContext.Provider value={valor}>{children}</SessaoContext.Provider>;
 }
 

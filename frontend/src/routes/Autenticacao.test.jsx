@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderApp, urlAtual } from '../test/rotas'
 import { ADMIN, PROFESSOR, entrarComo, semSessao } from '../test/sessao'
@@ -28,6 +28,8 @@ function mockApi() {
       return json(null, 204)
     }
     if (url === '/auth/esqueci-senha' || url === '/auth/reenviar-ativacao') return json({ detail: 'ok' }, 202)
+    // Como a API real: rota privada sem token é recusada
+    if (!options.headers?.Authorization) return json({ detail: 'Token de acesso inválido ou ausente.' }, 401)
     if (url === '/turmas') return turmasStatus === 200 ? json([]) : json({ detail: 'Token de acesso inválido ou ausente.' }, turmasStatus)
     // Demais listas (simulados, usuários...) vazias: estes testes só olham a autenticação
     return json([])
@@ -158,6 +160,49 @@ describe('sessão', () => {
 
     expect(await screen.findByRole('heading', { name: 'Metamorfose' })).toBeInTheDocument()
     expect(urlAtual(router)).toBe('/login')
+  })
+
+  it('sessão que vence com o app aberto volta para o login na próxima navegação', async () => {
+    const user = userEvent.setup()
+    entrarComo(PROFESSOR)
+    const router = renderApp('/turmas')
+    await screen.findByRole('heading', { name: 'Minhas Turmas' })
+
+    // Passou o prazo do token com a tela aberta
+    localStorage.setItem('metamorfose.sessao', JSON.stringify({ ...lerSessao(), expiraEm: Date.now() - 1 }))
+    await user.click(within(screen.getAllByRole('navigation', { name: 'Menu principal' }).at(-1)).getByRole('button', { name: /simulados/i }))
+
+    expect(await screen.findByRole('heading', { name: 'Metamorfose' })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/login')
+  })
+
+  it('depois que a sessão cai, outra pessoa que entra vai para o próprio início, não para a tela anterior', async () => {
+    const user = userEvent.setup()
+    entrarComo(PROFESSOR)
+    turmasStatus = 401
+    const router = renderApp('/turmas')
+    expect(await screen.findByRole('heading', { name: 'Metamorfose' })).toBeInTheDocument()
+
+    turmasStatus = 200
+    usuarioDoLogin = { ...PROFESSOR, id: 21, nome: 'Maria Souza', email: 'maria@escola.com' }
+    await preencherLogin(user, 'maria@escola.com', 'senha-correta')
+
+    expect(await screen.findByRole('heading', { name: 'Olá, Prof. Maria' })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/painel')
+  })
+
+  it('depois que a sessão cai, a mesma pessoa volta para a tela em que estava', async () => {
+    const user = userEvent.setup()
+    entrarComo(PROFESSOR)
+    turmasStatus = 401
+    const router = renderApp('/turmas')
+    expect(await screen.findByRole('heading', { name: 'Metamorfose' })).toBeInTheDocument()
+
+    turmasStatus = 200
+    await preencherLogin(user, PROFESSOR.email, 'senha-correta')
+
+    expect(await screen.findByRole('heading', { name: 'Minhas Turmas' })).toBeInTheDocument()
+    expect(urlAtual(router)).toBe('/turmas')
   })
 
   it('sair limpa a sessão e as telas privadas voltam a pedir login', async () => {

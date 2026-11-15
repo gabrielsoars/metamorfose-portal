@@ -68,8 +68,14 @@ function AppRotas() {
   };
 
   // Carrega ao entrar (e ao trocar de usuário): sem sessão a API recusaria as chamadas.
+  // Ao sair, descarta as listas da sessão anterior para o próximo usuário não vê-las enquanto carrega.
   useEffect(() => {
-    if (sessao) loadData();
+    if (sessao) {
+      loadData();
+    } else {
+      setUsuarios([]);
+      setTurmas([]);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessao?.token]);
 
