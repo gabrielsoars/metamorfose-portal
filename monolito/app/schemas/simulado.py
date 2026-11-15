@@ -8,7 +8,7 @@ from .turma import TurmaOut
 class SimuladoBase(BaseModel):
     titulo: str
     data_aplicacao: date
-    total_questoes: int
+    total_questoes: int = Field(..., ge=1, description="Número de questões (pelo menos 1)")
 
 class SimuladoCreate(SimuladoBase):
     turmas_ids: list[int] = []
@@ -56,7 +56,7 @@ class SimuladoOut(SimuladoBase):
 class SimuladoUpdate(BaseModel):
     titulo: Optional[str] = None
     data_aplicacao: Optional[date] = None
-    total_questoes: Optional[int] = None
+    total_questoes: Optional[int] = Field(None, ge=1, description="Número de questões (pelo menos 1)")
     turmas_ids: Optional[list[int]] = None
 
 STATUS_CORRIGIDO = "CORRIGIDO"
