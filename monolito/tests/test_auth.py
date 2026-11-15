@@ -497,3 +497,49 @@ def test_senha_acima_de_72_caracteres_e_recusada(client, codigos_enviados):
         "email": "prof@escola.com", "codigo": codigos_enviados["prof@escola.com"], "senha": "a" * 73,
     })
     assert response.status_code == 422
+
+
+# ── E-mail sem diferenciar maiúsculas (D-15) ─────────────────────────────────
+
+def test_login_ignora_maiusculas_no_email(client, db_session, chaves_jwt):
+    criar_usuario_com_senha(db_session)
+
+    assert login(client, email="Ativo@Escola.COM").status_code == 200
+    assert login(client, email="  ATIVO@ESCOLA.COM  ").status_code == 200
+
+
+def test_login_encontra_conta_antiga_salva_com_maiusculas(client, db_session, chaves_jwt):
+    # Contas criadas antes da correção podem estar no banco com maiúsculas
+    criar_usuario_com_senha(db_session, email="Antigo@Escola.com")
+
+    assert login(client, email="antigo@escola.com").status_code == 200
+
+
+def test_cadastro_salva_email_em_minusculas(client, codigos_enviados):
+    usuario_id = cadastrar_professor(client, email="Prof@Escola.COM")
+
+    assert client.get(f"/usuarios/{usuario_id}").json()["email"] == "prof@escola.com"
+    assert "prof@escola.com" in codigos_enviados
+
+
+def test_ativacao_e_reenvio_ignoram_maiusculas(client, codigos_enviados, chaves_jwt):
+    cadastrar_professor(client)
+    codigos_enviados.clear()
+
+    assert client.post("/auth/reenviar-ativacao", json={"email": "PROF@escola.com"}).status_code == 202
+    response = client.post("/auth/ativar", json={
+        "email": "Prof@Escola.com", "codigo": codigos_enviados["prof@escola.com"], "senha": "minha-senha-123",
+    })
+    assert response.status_code == 204
+    assert login(client, email="prof@escola.com", senha="minha-senha-123").status_code == 200
+
+
+def test_redefinicao_de_senha_ignora_maiusculas(client, db_session, codigos_redefinicao, chaves_jwt):
+    criar_usuario_com_senha(db_session)
+
+    assert client.post("/auth/esqueci-senha", json={"email": "ATIVO@escola.com"}).status_code == 202
+    response = client.post("/auth/redefinir-senha", json={
+        "email": "Ativo@Escola.com", "codigo": codigos_redefinicao["ativo@escola.com"], "senha": "senha-nova-456",
+    })
+    assert response.status_code == 204
+    assert login(client, senha="senha-nova-456").status_code == 200
