@@ -126,3 +126,12 @@ def test_atualizar_usuario_inexistente(client):
     response = client.patch("/usuarios/9999", json={"nome": "Fantasma"})
     assert response.status_code == 404
     assert response.json()["detail"] == "Usuário não encontrado"
+
+
+def test_criar_usuario_email_duplicado_com_outra_capitalizacao(client):
+    res1 = client.post("/usuarios", json={"nome": "Primeiro", "email": "duplicado@escola.com", "tipo": 1})
+    assert res1.status_code == 201
+
+    res2 = client.post("/usuarios", json={"nome": "Segundo", "email": "DUPLICADO@Escola.com", "tipo": 1})
+    assert res2.status_code == 400
+    assert res2.json()["detail"] == "Já existe um usuário cadastrado com este e-mail."

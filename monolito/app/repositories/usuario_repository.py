@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..models.usuario import TipoUsuario, Usuario
@@ -10,7 +11,8 @@ def buscar_por_id(db: Session, usuario_id: int) -> Usuario | None:
     return db.query(Usuario).filter(Usuario.id == usuario_id).first()
 
 def buscar_por_email(db:Session, email: str) -> Usuario | None:
-    return db.query(Usuario).filter(Usuario.email == email).first()
+    # Sem diferenciar maiúsculas: também encontra contas antigas salvas com maiúsculas.
+    return db.query(Usuario).filter(func.lower(Usuario.email) == email.strip().lower()).first()
 
 def existe_admin(db: Session) -> bool:
     return db.query(Usuario).filter(Usuario.tipo == TipoUsuario.ADMIN).first() is not None
