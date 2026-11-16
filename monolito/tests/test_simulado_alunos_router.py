@@ -1,3 +1,5 @@
+import pytest
+
 STATUS_CORRIGIDO = "CORRIGIDO"
 STATUS_NAO_CORRIGIDO = "NÃO CORRIGIDO"
 
@@ -463,3 +465,24 @@ def test_nota_ignora_gabarito_acima_do_total_apos_reduzir_questoes(client):
     assert correcao["total_questoes"] == 3
     assert correcao["nota"] == "3/3"
     assert [d["questao"] for d in correcao["detalhamento"]] == [1, 2, 3]
+
+
+@pytest.mark.parametrize("total", [0, -1])
+def test_criar_simulado_exige_ao_menos_uma_questao(client, total):
+    turma = _criar_turma(client)
+    res = client.post("/simulados", json={
+        "titulo": "Simulado inválido",
+        "data_aplicacao": "2026-09-10",
+        "total_questoes": total,
+        "turmas_ids": [turma],
+    })
+    assert res.status_code == 422
+    assert client.get("/simulados").json() == []
+
+
+@pytest.mark.parametrize("total", [0, -1])
+def test_editar_simulado_exige_ao_menos_uma_questao(client, total):
+    sid = _criar_simulado(client, [_criar_turma(client)])
+    res = client.patch(f"/simulados/{sid}", json={"total_questoes": total})
+    assert res.status_code == 422
+    assert client.get(f"/simulados/{sid}").json()["total_questoes"] == 5

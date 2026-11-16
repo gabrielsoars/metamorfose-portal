@@ -167,9 +167,9 @@ Os cinco bugs abaixo vieram da coluna "To Do" do Trello. Todos foram verificados
 
 | ID   | Bug no Trello                                         | Tam. | Lado            | Branch                              | Status  |
 | ---- | ----------------------------------------------------- | ---- | --------------- | ----------------------------------- | ------- |
-| D-12 | Sessão expirada deixa a tela quebrada                 | S    | Frontend        | `fix/d12-d13-sessao` (junto com a D-13) | ✅ Pronta para PR |
-| D-13 | Dados do usuário anterior aparecem após trocar login  | S    | Frontend        | `fix/d12-d13-sessao` (junto com a D-12) | ✅ Pronta para PR |
-| D-14 | Simulado pode ser cadastrado com 0 questões           | S    | Backend         | `fix/d14-total-questoes-minimo`     | A fazer |
+| D-12 | Sessão expirada deixa a tela quebrada                 | S    | Frontend        | `fix/d12-d13-sessao` (junto com a D-13) | ✅ Mergeada (PR #35) |
+| D-13 | Dados do usuário anterior aparecem após trocar login  | S    | Frontend        | `fix/d12-d13-sessao` (junto com a D-12) | ✅ Mergeada (PR #35) |
+| D-14 | Simulado pode ser cadastrado com 0 questões           | S    | Backend         | `fix/d14-total-questoes-minimo`     | ✅ Pronta para PR |
 | D-15 | E-mail diferencia maiúsculas e minúsculas             | M    | Backend         | `fix/d15-email-sem-maiusculas`      | A fazer |
 | D-16 | Falha no envio do e-mail                              | M    | Backend e config | `fix/d16-envio-de-email`           | A fazer |
 
