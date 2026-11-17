@@ -34,6 +34,7 @@ services:
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SMTP_FROM=${SMTP_FROM:-nao-responda@metamorfose.local}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_NOME=${ADMIN_NOME:-Administrador}
     secrets:
