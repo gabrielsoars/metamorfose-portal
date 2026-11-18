@@ -45,3 +45,6 @@ def _enviar_codigo(email: str, codigo: str, finalidade: str) -> None:
             smtp.send_message(mensagem)
     except (smtplib.SMTPException, OSError):
         logger.exception("Falha ao enviar código de %s para %s.", finalidade, email)
+        if settings.app_env == "development":
+            # Em desenvolvimento, um SMTP mal configurado não pode travar o teste local
+            logger.warning("Código de %s de %s: %s", finalidade, email, codigo)
