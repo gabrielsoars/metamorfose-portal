@@ -39,6 +39,18 @@ class Settings(BaseSettings):
     admin_email: str | None = None
     admin_nome: str = "Administrador"
 
+    # Origens liberadas para o navegador, separadas por vírgula.
+    # Em produção: CORS_ORIGINS=https://app.exemplo.com.br
+    cors_origins: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "http://localhost:5174,http://127.0.0.1:5174,"
+        "http://localhost:3000,http://127.0.0.1:3000"
+    )
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [origem.strip() for origem in self.cors_origins.split(",") if origem.strip()]
+
     @property
     def effective_database_url(self) -> str:
         if self.database_url:

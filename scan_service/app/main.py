@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from .auth import obter_usuario_id
+from .config import get_settings
 from .gabarito import processar_gabarito
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ app = FastAPI(
 # Libera CORS para o front poder chamar direto
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=get_settings().cors_origins_list,
     allow_methods=["*"],
     allow_headers=["*"],
 )

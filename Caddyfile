@@ -1,0 +1,19 @@
+# Três nomes, uma VPS, TLS automático (Let's Encrypt).
+# As variáveis vêm do .env.prod via docker-compose.prod.yml.
+# Se o DNS ainda não apontar para o servidor, o Caddy fica tentando emitir o
+# certificado e registra erro no log: `docker compose -f docker-compose.prod.yml logs caddy`.
+
+{$DOMAIN_APP} {
+	encode zstd gzip
+	reverse_proxy frontend:80
+}
+
+{$DOMAIN_API} {
+	encode zstd gzip
+	reverse_proxy monolito:8000
+}
+
+{$DOMAIN_SCAN} {
+	encode zstd gzip
+	reverse_proxy scan_service:8001
+}

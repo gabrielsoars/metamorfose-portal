@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     jwt_audience: str = "metamorfose-scan-service"
     jwt_leeway_seconds: int = 0
 
+    # Origens liberadas para o navegador, separadas por vírgula ("*" libera todas).
+    # Em produção: CORS_ORIGINS=https://app.exemplo.com.br
+    cors_origins: str = "*"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [origem.strip() for origem in self.cors_origins.split(",") if origem.strip()]
+
 
 @lru_cache
 def get_settings() -> Settings:

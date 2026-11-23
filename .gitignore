@@ -1,6 +1,8 @@
 .env
+.env.prod
 node_modules/
 __pycache__/
 monolito/*.db
 keys/
 *.pem
+backups/

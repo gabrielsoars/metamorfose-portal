@@ -1,0 +1,161 @@
+# Produção: uma VPS, um domínio, tudo junto.
+#
+# Uso:
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Diferente do docker-compose.yml (desenvolvimento):
+#   - sem bind mounts e sem Vite dev server (frontend é build estático no Nginx);
+#   - Postgres, monolito e scan não publicam portas: só o Caddy fala com o mundo;
+#   - healthchecks e restart automático;
+#   - chaves JWT por arquivo em ./keys (geradas pelo setup.sh).
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  application_db:
+    image: postgres:15
+    container_name: metamorfose_db
+    restart: always
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - interna
+
+  monolito:
+    build: ./monolito
+    container_name: metamorfose_monolito
+    restart: always
+    logging: *default-logging
+    environment:
+      APP_ENV: production
+      DB_HOST: application_db
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private_key
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-RS256}
+      JWT_ISSUER: ${JWT_ISSUER:-metamorfose-monolito}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-metamorfose-scan-service}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-60}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-nao-responda@metamorfose.local}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_NOME: ${ADMIN_NOME:-Administrador}
+    secrets:
+      - jwt_private_key
+    depends_on:
+      application_db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - interna
+
+  scan_service:
+    build: ./scan_service
+    container_name: metamorfose_scan
+    restart: always
+    logging: *default-logging
+    environment:
+      APP_ENV: production
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      JWT_PUBLIC_KEY_PATH: /run/secrets/jwt_public_key
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-RS256}
+      JWT_ISSUER: ${JWT_ISSUER:-metamorfose-monolito}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-metamorfose-scan-service}
+    secrets:
+      - jwt_public_key
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=5)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - interna
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: https://${DOMAIN_API}
+        VITE_SCAN_URL: https://${DOMAIN_SCAN}
+    container_name: metamorfose_frontend
+    restart: always
+    logging: *default-logging
+    expose:
+      - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - interna
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: metamorfose_caddy
+    restart: always
+    logging: *default-logging
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN_APP: ${DOMAIN_APP}
+      DOMAIN_API: ${DOMAIN_API}
+      DOMAIN_SCAN: ${DOMAIN_SCAN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - monolito
+      - scan_service
+    networks:
+      - interna
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+
+secrets:
+  jwt_private_key:
+    file: ./keys/jwt_private.pem
+  jwt_public_key:
+    file: ./keys/jwt_public.pem
+
+networks:
+  interna:
+    driver: bridge
