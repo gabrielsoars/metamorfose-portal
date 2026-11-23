@@ -51,7 +51,7 @@ export function ProfDashboardScreen() {
         <FiltrosQuestoes q={questoes} />
       </div>
 
-      <div className={`flex-1 overflow-y-auto p-6 pb-8 ${GUTTER} grid content-start gap-5 md:grid-cols-2 lg:gap-6`} style={{ scrollbarWidth: 'none' }}>
+      <div className={`flex-1 overflow-y-auto p-6 pb-8 ${GUTTER} grid auto-rows-max content-start gap-5 md:grid-cols-2 lg:gap-6`} style={{ scrollbarWidth: 'none' }}>
         <MediaAcertosCard q={questoes} />
 
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
