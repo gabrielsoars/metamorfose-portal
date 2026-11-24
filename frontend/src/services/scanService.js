@@ -1,6 +1,7 @@
 import { fetchComToken } from './api.js';
 
-const SCAN_BASE_URL = import.meta.env.VITE_SCAN_URL || 'http://localhost:8001';
+const defaultScanUrl = import.meta.env.MODE === 'test' ? 'http://localhost:8001' : '/scan-api';
+const SCAN_BASE_URL = import.meta.env.VITE_SCAN_URL || defaultScanUrl;
 
 // Não usa requestJson: ele força Content-Type: application/json, o que quebra o upload.
 // Sem definir o Content-Type, o navegador monta o multipart com o boundary correto.
