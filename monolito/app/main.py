@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from .routers import alunos, auth, turmas, usuarios, simulados, estatisticas
 from .db.base import Base
@@ -20,6 +21,8 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="API do Sistema Acadêmico", lifespan=lifespan)
+
+Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     CORSMiddleware,

@@ -55,9 +55,11 @@ services:
       # Esta linha protege a pasta node_modules de conflitos entre o Windows e o Linux do contêiner
       - /app/node_modules
     environment:
-      # O React roda no navegador do usuário, então ele precisa chamar a API pelo localhost,
-      # e não pelo nome interno da rede Docker.
-      - VITE_API_URL=http://localhost:8000
+      # As chamadas passam pelo proxy do Vite (/api e /scan-api), funcionando no PC e no celular/túnel.
+      - VITE_API_URL=/api
+      - VITE_SCAN_URL=/scan-api
+      - VITE_PROXY_TARGET=http://monolito:8000
+      - VITE_SCAN_PROXY_TARGET=http://scan_service:8001
     depends_on:
       - monolito
   scan_service:
@@ -88,6 +90,7 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
 
   grafana:
     image: grafana/grafana:10.1.0
@@ -98,11 +101,16 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
     depends_on:
       - prometheus
 
 volumes:
   pgdata:
+  prometheus_data:
+  grafana_data:
 
 # Gere as chaves antes de subir (ver README). Use um par diferente por ambiente.
 secrets:

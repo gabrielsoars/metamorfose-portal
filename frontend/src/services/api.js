@@ -1,6 +1,7 @@
 import { encerrarSessao, lerSessao } from './sessao.js';
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const defaultApiUrl = import.meta.env.MODE === 'test' ? "http://localhost:8000" : "/api";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || defaultApiUrl;
 
 // fetch com o token da sessão. Se a API recusar o token (401), encerra a sessão.
 // `publico: true` (login, ativação...) não manda o token: um 401 ali é senha errada, não sessão vencida.
