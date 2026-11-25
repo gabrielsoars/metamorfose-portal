@@ -42,7 +42,6 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
     if (!turma || !turma.id) return;
 
     let isMounted = true;
-    setImportResumo(null);
 
     listarAlunosDaTurma(turma.id)
       .then((alunos) => {
@@ -113,7 +112,7 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
       const textoIgnorados = ignorados > 0
         ? ` (${ignorados === 1 ? '1 linha ignorada' : `${ignorados} linhas ignoradas`})`
         : '';
-      setImportResumo(`${textoImportados} com sucesso${textoIgnorados}.`);
+      setImportResumo({ turmaId: turma.id, texto: `${textoImportados} com sucesso${textoIgnorados}.` });
 
       if (onRefresh) await onRefresh();
     } catch (error) {
@@ -214,8 +213,10 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
           type="button"
           disabled={importing}
           onClick={() => csvInput.current?.click()}
-          className="w-full bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-center gap-3 hover:bg-orange-50 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-wait lg:order-2 lg:w-auto lg:px-5 lg:py-2.5 lg:rounded-xl"
-          style={{ borderColor: C.orange, color: C.orange }}
+          className="w-full bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-wait lg:order-2 lg:w-auto lg:px-5 lg:py-2.5 lg:rounded-xl"
+          style={{ borderColor: C.orange, color: C.orange, background: '#ffffff' }}
+          onMouseEnter={(e) => { if (!importing) e.currentTarget.style.background = C.light; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
         >
           <Upload size={20} />
           <span className="text-sm font-bold">{importing ? 'Importando...' : 'Importar CSV'}</span>
@@ -257,10 +258,10 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
         </div>
         </div>
 
-        {importResumo && (
+        {importResumo?.turmaId === turma?.id && (
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
             <Check size={18} className="text-emerald-600 shrink-0" />
-            <p className="flex-1 text-xs font-semibold text-emerald-800">{importResumo}</p>
+            <p className="flex-1 text-xs font-semibold text-emerald-800">{importResumo.texto}</p>
             <button
               type="button"
               aria-label="Fechar resumo da importação"
