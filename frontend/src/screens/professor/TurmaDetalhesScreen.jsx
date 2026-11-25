@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, X, Search, Edit2, UserPlus, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, X, Search, Edit2, UserPlus, Upload, Check, Trash2, Save } from 'lucide-react';
 import { C, FALLBACK_ALUNOS } from '../../data/constants.js';
-import { atualizarAluno, criarAluno, excluirAluno, listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
+import { atualizarAluno, criarAluno, excluirAluno, importarAlunosCsv, listarAlunosDaTurma, normalizeAluno } from '../../services/alunosService.js';
 import { excluirTurma } from '../../services/turmasService.js';
 import { OrangeBtn, Sheet } from '../../components/ui.jsx';
 import { useEscape } from '../../components/hooks.js';
@@ -27,7 +27,10 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
   // Exclusão pendente de confirmação: { tipo: 'turma' } ou { tipo: 'aluno', aluno }.
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResumo, setImportResumo] = useState(null);
   const menuBtn = useRef(null);
+  const csvInput = useRef(null);
 
   // Esc fecha o menu ⋮ e devolve o foco ao botão.
   useEscape(() => {
@@ -39,6 +42,7 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
     if (!turma || !turma.id) return;
 
     let isMounted = true;
+    setImportResumo(null);
 
     listarAlunosDaTurma(turma.id)
       .then((alunos) => {
@@ -82,12 +86,40 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
     try {
       const created = await criarAluno(turma.id, { nome: newAluno.trim() });
 
-      setList((prev) => [...prev, normalizeAluno(created)]);
+      setList((prev) => [...prev, normalizeAluno(created)].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
       setNewAluno('');
       setShowAddForm(false);
       if (onRefresh) await onRefresh();
     } catch (error) {
       mostrarErro(error.message || 'Não foi possível adicionar o aluno.');
+    }
+  }
+
+  async function handleImportCsv(event) {
+    const arquivo = event.target.files?.[0];
+    event.target.value = '';
+    if (!arquivo || !turma || importing) return;
+
+    setImporting(true);
+    setImportResumo(null);
+    try {
+      const resultado = await importarAlunosCsv(turma.id, arquivo);
+      const novos = (Array.isArray(resultado?.alunos) ? resultado.alunos : []).map(normalizeAluno);
+      setList((prev) => [...prev, ...novos].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
+
+      const importados = resultado?.total_importados ?? novos.length;
+      const ignorados = resultado?.ignorados ?? 0;
+      const textoImportados = importados === 1 ? '1 aluno importado' : `${importados} alunos importados`;
+      const textoIgnorados = ignorados > 0
+        ? ` (${ignorados === 1 ? '1 linha ignorada' : `${ignorados} linhas ignoradas`})`
+        : '';
+      setImportResumo(`${textoImportados} com sucesso${textoIgnorados}.`);
+
+      if (onRefresh) await onRefresh();
+    } catch (error) {
+      mostrarErro(error.message || 'Não foi possível importar os alunos.');
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -168,12 +200,31 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
       </header>
 
       <div className={`flex-1 overflow-y-auto p-6 space-y-5 pb-8 ${GUTTER}`} style={{ scrollbarWidth: 'none' }}>
-        {/* Celular: botão, formulário, busca (empilhados). Desktop: busca e botão na mesma linha, formulário abaixo. */}
-        <div className="flex flex-col gap-5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3">
+        {/* Celular: botões, formulário, busca (empilhados). Desktop: busca e botões na mesma linha, formulário abaixo. */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3">
+        <input
+          ref={csvInput}
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          data-testid="input-importar-csv"
+          onChange={handleImportCsv}
+        />
+        <button
+          type="button"
+          disabled={importing}
+          onClick={() => csvInput.current?.click()}
+          className="w-full bg-white p-4 rounded-2xl shadow-sm border flex items-center justify-center gap-3 hover:bg-orange-50 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-wait lg:order-2 lg:w-auto lg:px-5 lg:py-2.5 lg:rounded-xl"
+          style={{ borderColor: C.orange, color: C.orange }}
+        >
+          <Upload size={20} />
+          <span className="text-sm font-bold">{importing ? 'Importando...' : 'Importar CSV'}</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setShowAddForm((value) => !value)}
-          className="w-full text-white p-4 rounded-2xl shadow-sm flex items-center justify-center gap-3 active:scale-95 transition-all lg:order-2 lg:w-auto lg:px-5 lg:py-2.5 lg:rounded-xl"
+          className="w-full text-white p-4 rounded-2xl shadow-sm flex items-center justify-center gap-3 active:scale-95 transition-all lg:order-3 lg:w-auto lg:px-5 lg:py-2.5 lg:rounded-xl"
           style={{ background: C.orange }}
           onMouseEnter={(e) => (e.currentTarget.style.background = C.orangeHover)}
           onMouseLeave={(e) => (e.currentTarget.style.background = C.orange)}
@@ -183,14 +234,14 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
         </button>
 
         {showAddForm && (
-          <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm space-y-3 lg:order-3 lg:basis-full">
+          <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm space-y-3 lg:order-4 lg:basis-full">
             <label className="block text-sm font-semibold text-gray-900">Nome do aluno</label>
             <input value={newAluno} onChange={(e) => setNewAluno(e.target.value)} placeholder="Digite o nome do aluno" className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-gray-800 font-medium" />
             <OrangeBtn onClick={handleAddAluno}>Salvar aluno</OrangeBtn>
           </div>
         )}
 
-        <hr className="border-gray-200 lg:hidden" />
+        <hr className="border-gray-200 my-2 lg:hidden" />
 
         <div className="relative lg:order-1 lg:flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -205,6 +256,21 @@ export function TurmaDetalhesScreen({ turma, turmas, onRefresh }) {
           />
         </div>
         </div>
+
+        {importResumo && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
+            <Check size={18} className="text-emerald-600 shrink-0" />
+            <p className="flex-1 text-xs font-semibold text-emerald-800">{importResumo}</p>
+            <button
+              type="button"
+              aria-label="Fechar resumo da importação"
+              onClick={() => setImportResumo(null)}
+              className="w-6 h-6 flex items-center justify-center rounded-full text-emerald-600 hover:bg-emerald-100 transition-colors shrink-0"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
 
         <div className="space-y-3 lg:space-y-0 lg:bg-white lg:rounded-2xl lg:border lg:border-gray-100 lg:shadow-sm lg:overflow-hidden lg:divide-y lg:divide-gray-100">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1 lg:hidden">Ordem Alfabética</p>
