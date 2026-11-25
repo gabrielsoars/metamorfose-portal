@@ -92,7 +92,16 @@ describe('App', () => {
       name: 'Extensivo Noturno',
       code: 'EN',
       turno: 'Noite',
+      alunos: 45,
       empty: false,
+    })
+
+    expect(normalizeTurma({ id: 4, nome: '[Demo] 3º Ano A', ano: 2026, turno: 'Manhã' })).toMatchObject({
+      id: 4,
+      name: '[Demo] 3º Ano A',
+      code: '3AA',
+      alunos: 0,
+      empty: true,
     })
   })
 })
