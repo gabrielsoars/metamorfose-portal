@@ -1,3 +1,6 @@
+from app.core import security
+from app.models.usuario import TipoUsuario, Usuario
+
 CSV_CHAMADA_EXEMPLO = (
     '"FREQUÊNCIA\nMÉDIA DO\nCURSISTA0,",TURMA 1,SEMANA A,,,,,,,,,\r\n'
     ",,10/08,10/08,11/08,11/08,11/08,12/08,12/08,12/08,13/08,13/08\r\n"
@@ -164,4 +167,91 @@ def test_importar_alunos_sem_enviar_arquivo(client):
     res = client.post(f"/turmas/{turma_id}/alunos/importar")
 
     assert res.status_code == 422
+
+
+# --------------------------------------------------------------------------- #
+# Autenticação na importação de alunos por CSV
+# --------------------------------------------------------------------------- #
+
+def _criar_usuario(db_session, email="prof@escola.com", tipo=TipoUsuario.PROFESSOR, ativo=True):
+    usuario = Usuario(
+        nome=email.split("@")[0],
+        email=email,
+        tipo=tipo,
+        senha_hash=security.gerar_hash("senha-forte-123"),
+        ativo=ativo,
+    )
+    db_session.add(usuario)
+    db_session.commit()
+    return usuario
+
+
+def _cabecalho_auth(usuario):
+    return {"Authorization": f"Bearer {security.criar_access_token(usuario.id)}"}
+
+
+def test_importar_alunos_sem_token_retorna_401(client_anonimo, chaves_jwt):
+    res = client_anonimo.post(
+        "/turmas/1/alunos/importar",
+        files={"arquivo": ("chamada.csv", CSV_CHAMADA_EXEMPLO.encode("utf-8"), "text/csv")},
+    )
+
+    assert res.status_code == 401
+    assert res.headers["www-authenticate"] == "Bearer"
+    assert res.json()["detail"] == "Token de acesso inválido ou ausente."
+
+
+def test_importar_alunos_token_invalido_retorna_401(client_anonimo, chaves_jwt):
+    res = client_anonimo.post(
+        "/turmas/1/alunos/importar",
+        files={"arquivo": ("chamada.csv", CSV_CHAMADA_EXEMPLO.encode("utf-8"), "text/csv")},
+        headers={"Authorization": "Bearer token-invalido"},
+    )
+
+    assert res.status_code == 401
+    assert res.json()["detail"] == "Token de acesso inválido ou ausente."
+
+
+def test_importar_alunos_usuario_inativo_retorna_401(client_anonimo, db_session, chaves_jwt):
+    professor = _criar_usuario(db_session, ativo=False)
+
+    res = client_anonimo.post(
+        "/turmas/1/alunos/importar",
+        files={"arquivo": ("chamada.csv", CSV_CHAMADA_EXEMPLO.encode("utf-8"), "text/csv")},
+        headers=_cabecalho_auth(professor),
+    )
+
+    assert res.status_code == 401
+    assert res.json()["detail"] == "Token de acesso inválido ou ausente."
+
+
+def test_professor_autenticado_importa_alunos_csv(client_anonimo, db_session, chaves_jwt):
+    professor = _criar_usuario(db_session, tipo=TipoUsuario.PROFESSOR, ativo=True)
+    headers = _cabecalho_auth(professor)
+
+    res_turma = client_anonimo.post(
+        "/turmas",
+        json={"nome": "Extensivo Noturno", "ano": 2026, "turno": "Noite"},
+        headers=headers,
+    )
+    assert res_turma.status_code == 201
+    turma_id = res_turma.json()["id"]
+
+    res = client_anonimo.post(
+        f"/turmas/{turma_id}/alunos/importar",
+        files={"arquivo": ("chamada.csv", CSV_CHAMADA_EXEMPLO.encode("utf-8"), "text/csv")},
+        headers=headers,
+    )
+
+    assert res.status_code == 201
+    assert res.json()["total_importados"] == 3
+
+    res_lista = client_anonimo.get(f"/turmas/{turma_id}/alunos", headers=headers)
+    assert res_lista.status_code == 200
+    assert [a["nome"] for a in res_lista.json()] == [
+        "Alicia Suyane Bernardo de Souza",
+        "Elizabeth Mendonça de Andrade",
+        "Victor Breno Gregorio Vieira",
+    ]
+
 
