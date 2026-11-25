@@ -10,6 +10,7 @@ class TurmaOut(TurmaBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    alunos: int = 0
 
 class TurmaCreate(TurmaBase):
     pass

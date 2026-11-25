@@ -52,7 +52,24 @@ def test_listar_turmas(client):
     assert len(dados) == 2
     # As turmas são ordenadas por nome no repositório
     assert dados[0]["nome"] == "1º Ano A"
+    assert dados[0]["alunos"] == 0
     assert dados[1]["nome"] == "2º Ano B"
+    assert dados[1]["alunos"] == 0
+
+
+def test_listar_turmas_com_contagem_de_alunos(client):
+    turma_res = client.post("/turmas", json={"nome": "3º Ano A", "ano": 2026, "turno": "Matutino"})
+    turma_id = turma_res.json()["id"]
+    client.post(f"/turmas/{turma_id}/alunos", json={"nome": "Ana"})
+    client.post(f"/turmas/{turma_id}/alunos", json={"nome": "Bruno"})
+
+    response = client.get("/turmas")
+    assert response.status_code == 200
+    assert response.json()[0]["alunos"] == 2
+
+    detalhe = client.get(f"/turmas/{turma_id}")
+    assert detalhe.status_code == 200
+    assert detalhe.json()["alunos"] == 2
 
 
 def test_obter_turma_por_id_existente(client):
